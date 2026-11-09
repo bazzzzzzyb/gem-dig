@@ -86,10 +86,21 @@ async function loadAll() {
 /* ================= audio (synthesised, no files) ================= */
 let actx = null;
 function ac() {
-  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } }
-  if (actx && actx.state === 'suspended') actx.resume();
+  if (!actx) {
+    // iOS 17+: play like a media app, so the silent switch doesn't mute the game (the in-game toggle still does).
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { }
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { }
+    if (actx) { // iOS unlock: play one silent sample inside the first touch
+      try { const s = actx.createBufferSource(); s.buffer = actx.createBuffer(1, 1, 22050); s.connect(actx.destination); s.start(0); } catch (e) { }
+    }
+  }
+  // iOS leaves the context 'interrupted' (not 'suspended') after the app is backgrounded or a call comes in.
+  if (actx && actx.state !== 'running') actx.resume().catch(() => { });
   return actx;
 }
+// Any touch anywhere wakes the sound up again (iOS only allows that inside a user gesture).
+['touchend', 'pointerup', 'click'].forEach(ev => document.addEventListener(ev, () => ac(), { passive: true }));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && actx && actx.state !== 'running') actx.resume().catch(() => { }); });
 function tone(f, d = .12, type = 'sine', v = .12, when = 0, slide = 0) {
   if (!save.sound || SPD < 1) return; const a = ac(); if (!a) return;
   const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
@@ -439,15 +450,33 @@ async function collectBones() {
   for (let c = 0; c < COLS; c++) {
     const cell = grid[ROWS - 1][c];
     if (cell && cell.kind === 'bone') {
-      any = true; grid[ROWS - 1][c] = null; bg.have++; bumpGoal(bg); sfx.bone();
+      any = true; grid[ROWS - 1][c] = null; bg.have++; sfx.bone();
       score += 500; floatText('+500', c, ROWS - 1, '#ffe14d');
-      dying.push(cell); ring(c, ROWS - 1, 1.5, '#ffd34d', 500);
-      tween(cell, { y: ROWS - 2.5, s: 1.7, a: 0 }, 550, E.out);
+      ring(c, ROWS - 1, 1.5, '#ffd34d', 500);
+      flyToGoal(cell, c, ROWS - 1, bg);
+      bigText(bg.have >= bg.n ? 'All bones found!' : `Golden bone! ${bg.have} of ${bg.n}`, true);
       maple.game.play('jump');
     }
   }
   if (any) { updateHUD(); await wait(320); }
   return any;
+}
+// The collected bone leaves the board and visibly flies into its goal box.
+function flyToGoal(cell, c, r, g) {
+  const el = document.getElementById('goal' + goals.indexOf(g));
+  const b = bc.getBoundingClientRect();
+  if (!el || SPD < 1) { bumpGoal(g); return; }
+  const t = el.querySelector('img').getBoundingClientRect();
+  const img = document.createElement('img');
+  img.src = 'art/bone.png'; img.className = 'flyer';
+  const size = cs * 1.2;
+  Object.assign(img.style, { left: (b.left + (c + .5) * cs - size / 2) + 'px', top: (b.top + (r + .5) * cs - size / 2) + 'px', width: size + 'px', height: size + 'px' });
+  document.body.appendChild(img);
+  img.animate([
+    { transform: 'translate(0,0) scale(1)', offset: 0 },
+    { transform: 'translate(0,-' + cs * 1.2 + 'px) scale(1.6) rotate(-15deg)', offset: .3 },
+    { transform: `translate(${t.left + t.width / 2 - (b.left + (c + .5) * cs)}px,${t.top + t.height / 2 - (b.top + (r + .5) * cs)}px) scale(.6) rotate(20deg)`, offset: 1 },
+  ], { duration: 900, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).onfinish = () => { img.remove(); bumpGoal(g); updateHUD(); };
 }
 async function settle(allowShuffle = true) {
   for (let guard = 0; guard < 60; guard++) {
@@ -886,13 +915,14 @@ function goalIcon(g) {
 }
 function goalLabel(g) {
   if (g.t === 'score') return Math.max(0, g.n - score).toLocaleString();
+  if (g.t === 'bone') return `${g.have}/${g.n}`;
   return Math.max(0, g.n - g.have);
 }
 function buildGoals() {
   $('#goals').innerHTML = goals.map((g, i) => `<div class="goal box" id="goal${i}"><img src="${goalIcon(g)}"><span></span></div>`).join('');
 }
 function goalChips() {
-  return goals.map(g => `<div class="goal box ${goalDone(g) ? 'done' : ''}"><img src="${goalIcon(g)}"><span>${goalDone(g) ? '✓' : (g.t === 'score' ? g.n.toLocaleString() : g.n)}</span></div>`).join('');
+  return goals.map(g => `<div class="goal box ${goalDone(g) ? 'done' : ''}"><img src="${goalIcon(g)}"><span>${goalDone(g) ? '✓' : (g.t === 'score' ? g.n.toLocaleString() : g.t === 'bone' ? g.have + '/' + g.n : g.n)}</span></div>`).join('');
 }
 function bumpGoal(g) {
   const el = document.getElementById('goal' + goals.indexOf(g)); if (!el) return;
@@ -971,7 +1001,7 @@ function howto(after) {
 function intro(i) {
   const L = levelDef(i);
   const chips = L.goals.map(g => `<div class="goal box"><img src="${g.t === 'color' ? 'art/' + GEMS[g.c] + '.png' : g.t === 'bone' ? 'art/bone.png' : g.t === 'ice' ? 'art/ice.png' : 'art/prism.png'}"><span>${g.t === 'score' ? g.n.toLocaleString() : g.t === 'ice' ? 'all' : g.n}</span></div>`).join('');
-  const words = L.goals.map(g => g.t === 'score' ? `Score ${g.n.toLocaleString()}` : g.t === 'color' ? `Collect ${g.n} ${GEMS[g.c]}` : g.t === 'bone' ? `Drop ${g.n} golden bone${g.n > 1 ? 's' : ''}` : 'Break all the ice').join(' · ');
+  const words = L.goals.map(g => g.t === 'score' ? `Score ${g.n.toLocaleString()}` : g.t === 'color' ? `Collect ${g.n} ${GEMS[g.c]}` : g.t === 'bone' ? `Bring ${g.n} golden bone${g.n > 1 ? 's' : ''} down to the bottom row` : 'Break all the ice').join(' · ');
   const go = () => modal(`<h2>Level ${i + 1}</h2>${L.name ? `<p style="color:#ff9ad8;font-weight:900;font-size:20px">${L.name}</p>` : ''}
     <div class="goals-list">${chips}</div><p>${words}</p><p style="opacity:.7">${L.moves} moves</p>
     <div class="btns"><button class="btn" data-a="go">Play</button><button class="btn alt" data-a="back">Back</button></div>`,
@@ -981,6 +1011,7 @@ function intro(i) {
 
 /* ================= boot ================= */
 (async function boot() {
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
   await loadAll();
   $('#loading').remove();
   showMap();
