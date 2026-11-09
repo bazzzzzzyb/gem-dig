@@ -1,0 +1,11 @@
+{
+  "name": "Maple's Gem Dig",
+  "short_name": "Gem Dig",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#140a26",
+  "theme_color": "#1a0f2e",
+  "icons": [{ "src": "art/icon.png", "sizes": "180x180", "type": "image/png" }]
+}
