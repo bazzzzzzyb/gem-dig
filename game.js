@@ -10,7 +10,7 @@ const $ = s => document.querySelector(s);
 /* ================= save ================= */
 const SAVE_KEY = 'maple-gem-dig-v1';
 const save = Object.assign(
-  { unlocked: 1, stars: {}, best: {}, boost: { hammer: 3, shuffle: 2, paw: 2 }, sound: true, chests: 0, seenHowto: false },
+  { unlocked: 1, stars: {}, best: {}, boost: { hammer: 3, shuffle: 2, paw: 2 }, sound: true, chests: 0, seenHowto: false, stage: 0, seenVegas: false },
   JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'));
 const persist = () => localStorage.setItem(SAVE_KEY, JSON.stringify(save));
 
@@ -61,26 +61,95 @@ const LEVELS = [
   { m: 32, k: 5, g: [B(4)] },
   { m: 34, k: 5, g: [I, B(2), C(0, 25)], ice: 'diamond', name: 'The Big Dig' },
 ];
+
+/* ---- Stage 2: Vegas Nights, starring Whiskey & Tiki ----
+   Saved stars are keyed by level index, so new levels are only ever APPENDED to LEVELS. Never insert or reorder.
+   Vegas rules: neon bulbs instead of ice (light them all), Tiki hiding in boxes (match next to a box),
+   a jackpot meter that spins a slot machine, and timed "Happy Hour" levels with no move limit. */
+Object.assign(P, {
+  dice5:   ['11....11','11....11','........','...11...','...11...','........','11....11','11....11'],
+  seven:   ['........','.111111.','.111111.','....11..','...11...','..11....','..11....','........'],
+  marquee: ['11111111','1......1','1......1','1......1','1......1','1......1','1......1','11111111'],
+  spade:   ['...11...','..1111..','.111111.','11111111','11111111','.1.11.1.','...11...','..1111..'],
+  star:    ['...11...','...11...','11111111','.111111.','..1111..','.111111.','.11..11.','11....11'],
+  checker: ['11..11..','11..11..','..11..11','..11..11','11..11..','11..11..','..11..11','..11..11'],
+});
+const X = (n, hp = 1) => ({ t: 'box', n, hp });
+const VEGAS = [
+  { m: 16, k: 5, g: [S(7000)], name: 'Welcome to Vegas' },
+  { m: 15, k: 5, g: [I], ice: 'dice5' },
+  { m: 11, k: 5, g: [X(2)], name: 'Find Tiki' },
+  { m: 14, k: 5, g: [C(0, 26), C(3, 26)] },
+  { time: 60, k: 5, g: [S(10000)], name: 'Happy Hour' },
+  { m: 14, k: 5, g: [I], ice: 'seven', name: 'Lucky Seven' },
+  { m: 12, k: 6, g: [X(3)] },
+  { m: 22, k: 6, g: [S(8000)] },
+  { m: 17, k: 5, g: [I], ice: 'marquee' },
+  { m: 13, k: 5, g: [X(3, 2)], name: 'Taped Shut' },
+  { m: 17, k: 5, g: [I], ice: 'heart', name: 'Neon Heart ♥' },
+  { time: 75, k: 5, g: [S(14000)], name: 'Happy Hour' },
+  { m: 20, k: 6, g: [C(1, 25), C(4, 25), C(5, 25)] },
+  { m: 17, k: 5, g: [I, X(2)], ice: 'spade' },
+  { m: 15, k: 5, g: [X(4, 2)] },
+  { m: 16, k: 5, g: [I], ice: 'checker' },
+  { time: 60, k: 6, g: [S(8000)], name: 'Last Call' },
+  { m: 21, k: 5, g: [I, C(3, 25)], ice: 'star' },
+  { m: 17, k: 5, g: [X(5, 2)], name: 'Cat Burglar' },
+  { m: 24, k: 6, g: [S(13000)], name: 'High Roller' },
+  { m: 24, k: 5, g: [I], ice: 'full1', name: 'Light the Strip' },
+  { m: 19, k: 5, g: [X(4, 2), I], ice: 'dice5' },
+  { time: 90, k: 5, g: [S(19000)], name: 'All Night Long' },
+  { m: 21, k: 5, g: [I, X(3, 2), C(0, 25)], ice: 'diamond', name: 'Viva Whiskey & Tiki' },
+];
+LEVELS.push(...VEGAS.map(l => ({ ...l, vegas: true })));
+const STAGES = [{ id: 'cave', start: 0, n: 30 }, { id: 'vegas', start: 30, n: VEGAS.length }];
+const stageOf = i => (i >= STAGES[1].start ? 1 : 0);
+const SECS_PER_MOVE = 2.2;   // how the bot (and the star maths) converts a timed level into moves
 function levelDef(i) {
-  const L = LEVELS[i];
+  const L = LEVELS[i], st = stageOf(i);
   const sg = L.g.find(g => g.t === 'score');
-  const s2 = Math.round(Math.max(sg ? sg.n * 1.3 : 0, L.m * (L.k === 5 ? 330 : 190)) / 100) * 100;
-  return { idx: i, moves: L.m, colors: L.k, goals: L.g, ice: L.ice ? P[L.ice] : null, name: L.name, s2, s3: Math.round(s2 * 1.7 / 100) * 100 };
+  const m = L.time ? Math.round(L.time / SECS_PER_MOVE) : L.m;
+  const per = L.vegas ? (L.k === 5 ? 620 : 420) : (L.k === 5 ? 330 : 190);
+  const s2 = Math.round(Math.max(sg ? sg.n * 1.3 : 0, m * per) / 100) * 100;
+  return {
+    idx: i, num: i - STAGES[st].start + 1, stage: st, vegas: !!L.vegas, time: L.time || 0, moves: L.time ? 0 : L.m,
+    colors: L.k, goals: L.g, ice: L.ice ? P[L.ice] : null, name: L.name, s2, s3: Math.round(s2 * 1.7 / 100) * 100,
+  };
 }
 
 /* ================= images ================= */
 const IMG = {};
-const MAPLE = { idle: [], jump: [], wag: [], pant: [] };
+const SPR = {
+  maple: { idle: 8, jump: 8, wag: 8, pant: 8 },
+  whiskey: { stand: 4, jump: 8, swat: 4, loaf: 10, yawn: 11, run: 6 },
+  tiki: { stand: 4, jump: 8, swat: 4, run: 6 },
+};
+const FR = {};   // FR[who][anim] = [frames]
+let BULB_SRC = '';
 function loadImg(src) {
   return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
 }
 async function loadAll() {
-  const names = [...GEMS, 'prism', 'bone', 'ice'];
-  await Promise.all(names.map(async n => { IMG[n] = await loadImg('art/' + n + '.png'); }));
-  await Promise.all(Object.keys(MAPLE).map(async k => {
-    for (let i = 0; i < 8; i++) MAPLE[k][i] = await loadImg(`art/maple/${k}_${i}.png`);
-    MAPLE[k] = MAPLE[k].filter(Boolean);
-  }));
+  const jobs = [];
+  for (const n of [...GEMS, 'prism', 'bone', 'ice']) jobs.push(loadImg('art/' + n + '.png').then(i => IMG[n] = i));
+  for (const n of ['v0', 'v1', 'v2', 'v3', 'v4', 'v5', 'seven', 'disco', 'coin', 'box', 'clock', 'trophy']) jobs.push(loadImg('art/vegas/' + n + '.png').then(i => IMG[n] = i));
+  jobs.push(loadImg('art/tiki/box.png').then(i => IMG.tikibox = i));
+  for (const who in SPR) {
+    FR[who] = {};
+    for (const anim in SPR[who]) {
+      FR[who][anim] = [];
+      for (let i = 0; i < SPR[who][anim]; i++) jobs.push(loadImg(`art/${who}/${anim}_${i}.png`).then(img => FR[who][anim][i] = img));
+    }
+  }
+  await Promise.all(jobs);
+  for (const who in FR) for (const anim in FR[who]) FR[who][anim] = FR[who][anim].filter(Boolean);
+  // goal icon for "light the bulbs" is drawn, not downloaded
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d');
+  const gr = g.createRadialGradient(32, 28, 2, 32, 28, 30); gr.addColorStop(0, '#fffbe0'); gr.addColorStop(.45, '#ffd34d'); gr.addColorStop(1, 'rgba(255,170,40,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = '#fff6c2'; g.beginPath(); g.arc(32, 28, 13, 0, 7); g.fill();
+  g.fillStyle = '#8a6a3a'; g.fillRect(25, 42, 14, 10); g.fillStyle = '#5a4020'; g.fillRect(27, 52, 10, 4);
+  BULB_SRC = cv.toDataURL();
 }
 
 /* ================= audio (synthesised, no files) ================= */
@@ -132,6 +201,15 @@ const sfx = {
   bone() { tone(700, .1, 'square', .05); tone(1050, .18, 'square', .05, .08); tone(1400, .2, 'triangle', .05, .16); },
   star(i) { tone(note(784, i * 4), .45, 'triangle', .12); tone(note(1568, i * 4), .3, 'sine', .05, .03); },
   ice() { tone(1800, .08, 'triangle', .05, 0, .5); },
+  // --- Vegas ---
+  light() { tone(1320, .12, 'sine', .07); tone(1980, .18, 'sine', .05, .05); },
+  reel() { tone(900 + Math.random() * 300, .03, 'square', .025); },
+  reelStop() { tone(180, .12, 'square', .08, 0, .6); tone(660, .1, 'triangle', .06, .02); },
+  lever() { tone(300, .18, 'sawtooth', .06, 0, .4); tone(140, .12, 'square', .06, .16); },
+  jackpot(big) { const n = big ? 22 : 10; for (let i = 0; i < n; i++) tone(note(1047, PENTA[(i * 3) % 8]), .12, 'triangle', .07, i * .06); if (big) [0, 4, 7, 12].forEach((s, i) => tone(note(523, s), .5, 'sawtooth', .04, i * .12)); },
+  meow() { tone(520, .16, 'sawtooth', .05, 0, 1.75); tone(910, .3, 'sawtooth', .05, .15, .55); tone(1040, .16, 'sine', .05, 0, 1.75); tone(1820, .3, 'sine', .04, .15, .55); },
+  rip() { noise(.12, .12); tone(500, .08, 'square', .04, 0, .5); },
+  tick() { tone(1000, .05, 'square', .05); },
 };
 
 /* ================= tweens ================= */
@@ -163,8 +241,10 @@ const wait = ms => new Promise(r => setTimeout(r, ms * SPD));
 let LV, grid, ice, moves, score, goals, cascade = 1, busy = false, ended = true, selected = null;
 let boosterMode = null, extraUsed = false, lastInput = 0, hint = null, cellId = 0;
 let dying = [], fx = [], shake = 0;
+// Vegas state: timed levels and the jackpot meter
+let timed = false, timeLeft = 0, timeStarted = false, paused = false, jackMeter = 0, jackNeed = 50;
 
-const mkCell = (c, kind = 'gem', sp = null) => ({ id: ++cellId, c, kind, sp, x: 0, y: 0, s: 1, a: 1, fired: false });
+const mkCell = (c, kind = 'gem', sp = null) => ({ id: ++cellId, c, kind, sp, x: 0, y: 0, s: 1, a: 1, fired: false, hp: 1 });
 const randColor = () => Math.floor(Math.random() * LV.colors);
 const inB = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
 const colorOf = cell => (cell && cell.kind === 'gem' && cell.sp !== 'prism') ? cell.c : -1;
@@ -174,8 +254,11 @@ function startLevel(i) {
   LV = levelDef(i);
   moves = LV.moves; score = 0; cascade = 1; extraUsed = false; ended = false; busy = false;
   selected = null; boosterMode = null; hint = null; dying = []; fx = []; tweens.length = 0;
+  timed = !!LV.time; timeLeft = LV.time; timeStarted = false; paused = false; jackMeter = 0; jackNeed = 50;
+  document.body.classList.toggle('vegas', LV.vegas);
+  setMascots(LV.stage);
   goals = LV.goals.map(g => ({ ...g, have: 0 }));
-  ice = [...Array(ROWS)].map((_, r) => [...Array(COLS)].map((_, c) => LV.ice ? (+LV.ice[r][c] || 0) : 0));
+  ice =[...Array(ROWS)].map((_, r) => [...Array(COLS)].map((_, c) => LV.ice ? (+LV.ice[r][c] || 0) : 0));
   const ig = goalOf('ice'); if (ig) ig.n = ice.flat().filter(v => v > 0).length;
   newBoard();
   // gems drop in from above on start
@@ -202,6 +285,18 @@ function newBoard() {
     if (bg) {
       const cols = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - .5).slice(0, Math.min(2, bg.n));
       cols.forEach(c => { const b = mkCell(-1, 'bone'); b.x = c; b.y = 3; grid[3][c] = b; });
+    }
+    const xg = goalOf('box');
+    if (xg) { // Tiki's boxes start scattered through the middle of the board, never side by side
+      const spots = [];
+      for (let r = 1; r < ROWS - 1; r++) for (let c = 0; c < COLS; c++) spots.push([r, c]);
+      spots.sort(() => Math.random() - .5);
+      const used = [];
+      for (const [r, c] of spots) {
+        if (used.length >= xg.n) break;
+        if (used.some(([ur, uc]) => Math.abs(ur - r) + Math.abs(uc - c) < 2)) continue;
+        const b = mkCell(-1, 'box'); b.hp = xg.hp; b.x = c; b.y = r; grid[r][c] = b; used.push([r, c]);
+      }
     }
     if (!findMatches().length && findMoves().length) break;
   }
@@ -263,11 +358,13 @@ async function trySwap(r1, c1, r2, c2) {
   const a = grid[r1][c1], b = grid[r2][c2];
   if (!a || !b || busy || ended) return;
   busy = true; selected = null; hint = null; sfx.swap();
+  timeStarted = true;
+  const spend = () => { if (!timed) moves--; else if (SPD < 1) timeLeft = Math.max(0, timeLeft - SECS_PER_MOVE); updateHUD(); };
   grid[r1][c1] = b; grid[r2][c2] = a;
   await Promise.all([tween(a, { x: c2, y: r2 }, 160), tween(b, { x: c1, y: r1 }, 160)]);
   cascade = 1;
   if (isCombo(a, b)) {
-    moves--; updateHUD();
+    spend();
     await comboSwap(a, r2, c2, b, r1, c1);
   } else {
     const g = findMatches();
@@ -276,10 +373,11 @@ async function trySwap(r1, c1, r2, c2) {
       await Promise.all([tween(a, { x: c1, y: r1 }, 160), tween(b, { x: c2, y: r2 }, 160)]);
       busy = false; lastInput = performance.now(); return;
     }
-    moves--; updateHUD();
+    spend();
     await resolve(g, [[r2, c2], [r1, c1]]);
   }
   await settle();
+  await jackpots();
   busy = false; lastInput = performance.now();
   afterMove();
 }
@@ -332,14 +430,25 @@ function commonColor() {
 }
 
 async function clearSet(seeds, creates = []) {
-  const set = new Set(), q = seeds.slice(), fired = [];
+  const set = new Set(), q = seeds.slice(), fired = [], boxHit = new Set();
   while (q.length) {
     const [r, c] = q.pop(); if (!inB(r, c)) continue;
     const k = r * COLS + c; if (set.has(k)) continue;
     const cell = grid[r][c]; if (!cell || cell.kind === 'bone') continue;
+    if (cell.kind === 'box') { boxHit.add(k); continue; }   // a blast landing right on a box
     set.add(k);
     if (cell.sp && !cell.fired) { cell.fired = true; fired.push([cell, r, c]); q.push(...area(cell.sp, r, c)); }
   }
+  // anything cleared right next to a box gives it a knock too
+  for (const k of set) {
+    const r = Math.floor(k / COLS), c = k % COLS;
+    for (const [dr, dc] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const n = inB(r + dr, c + dc) && grid[r + dr][c + dc];
+      if (n && n.kind === 'box') boxHit.add((r + dr) * COLS + c + dc);
+    }
+  }
+  for (const k of boxHit) hitBox(Math.floor(k / COLS), k % COLS);
+  if (LV.vegas && !ended) jackMeter += set.size;
   for (const [cell, r, c] of fired) fireFx(cell.sp, r, c, GEM_COL[cell.c] || '#fff');
   if (fired.length) { shake = Math.min(18, 7 + fired.length * 3); sfx.blast(); if (fired.length >= 2 || fired.some(f => f[0].sp === 'prism')) maple.game.play('jump'); }
   const anims = [];
@@ -369,11 +478,34 @@ async function clearSet(seeds, creates = []) {
   updateHUD();
 }
 
+// A box takes a knock: the ribbon comes off first (hp 2), then Tiki pops out and is collected.
+function hitBox(r, c) {
+  const cell = grid[r][c], g = goalOf('box');
+  if (!cell || cell.kind !== 'box') return;
+  cell.hp--;
+  if (cell.hp > 0) {
+    sfx.rip(); cell.s = 1.35; tween(cell, { s: 1 }, 260, E.back);
+    burst({ x: c, y: r, kind: 'gem', c: 0 });
+    return;
+  }
+  grid[r][c] = null; score += 400;
+  if (g) g.have++;
+  sfx.meow(); ring(c, r, 1.5, '#ffd34d', 500); floatText('+400', c, r, '#ffe14d');
+  dying.push(cell); tween(cell, { s: 1.6, a: 0 }, 300, E.out);
+  if (g) {
+    flyToGoal(cell, c, r, g, 'art/tiki/south.png');
+    bigText(g.have >= g.n ? 'Tiki is free!' : `Found Tiki! ${g.have} of ${g.n}`, true);
+  }
+  maple.game.play('jump');
+}
+
 function onCleared(cell, r, c) {
   const k = cell.sp === 'prism' ? -1 : cell.c;
   for (const g of goals) if (g.t === 'color' && g.c === k && g.have < g.n) { g.have++; bumpGoal(g); }
   if (ice[r][c] > 0) {
-    ice[r][c]--; sfx.ice(); shards(c, r);
+    ice[r][c]--;
+    if (LV.vegas) { if (ice[r][c] === 0) { sfx.light(); ring(c, r, .9, '#ffd34d', 350); } else sfx.tap(); }
+    else { sfx.ice(); shards(c, r); }
     if (ice[r][c] === 0) { const g = goalOf('ice'); if (g) { g.have++; bumpGoal(g); } }
   }
 }
@@ -462,13 +594,13 @@ async function collectBones() {
   return any;
 }
 // The collected bone leaves the board and visibly flies into its goal box.
-function flyToGoal(cell, c, r, g) {
+function flyToGoal(cell, c, r, g, src = 'art/bone.png') {
   const el = document.getElementById('goal' + goals.indexOf(g));
   const b = bc.getBoundingClientRect();
   if (!el || SPD < 1) { bumpGoal(g); return; }
   const t = el.querySelector('img').getBoundingClientRect();
   const img = document.createElement('img');
-  img.src = 'art/bone.png'; img.className = 'flyer';
+  img.src = src; img.className = 'flyer';
   const size = cs * 1.2;
   Object.assign(img.style, { left: (b.left + (c + .5) * cs - size / 2) + 'px', top: (b.top + (r + .5) * cs - size / 2) + 'px', width: size + 'px', height: size + 'px' });
   document.body.appendChild(img);
@@ -493,7 +625,7 @@ async function settle(allowShuffle = true) {
 async function shuffleBoard(auto) {
   if (auto) bigText('Shuffle!');
   const pos = [], cells = [];
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const k = grid[r][c]; if (k && k.kind !== 'bone') { pos.push([r, c]); cells.push(k); } }
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const k = grid[r][c]; if (k && k.kind === 'gem') { pos.push([r, c]); cells.push(k); } }
   for (let t = 0; t < 200; t++) {
     for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
     cells.forEach((k, i) => grid[pos[i][0]][pos[i][1]] = k);
@@ -513,17 +645,104 @@ const allDone = () => goals.every(goalDone);
 function afterMove() {
   if (ended) return;
   if (allDone()) return win();
+  if (timed) { if (timeLeft <= 0) lose(); return; }
   if (moves <= 0) return lose();
   if (moves === 3) bigText('3 moves left!');
 }
 
+/* ---------- Vegas: the jackpot slot machine ---------- */
+// Every piece cleared fills the meter. When it's full Whiskey pulls the lever. It always pays out.
+const JACK = [
+  { id: 'cherry', img: 'v0', w: 28, name: 'Cherry Bombs!', sub: '3 bombs go off' },
+  { id: 'bell', img: 'v3', w: 28, name: 'Ring-a-ding!', sub: '4 blasters fire' },
+  { id: 'clover', img: 'v2', w: 22, name: 'Lucky Clover!', sub: 'A whole colour is cleared' },
+  { id: 'dice', img: 'v4', w: 14, name: 'Lucky Roll!', sub: '' },
+  { id: 'seven', img: 'seven', w: 8, name: 'JACKPOT!!!', sub: 'Everything at once' },
+];
+let forceJack = null;   // test hook
+async function jackpots() {
+  while (LV.vegas && !ended && jackMeter >= jackNeed && !allDone()) await jackpot();
+  updateJack();
+}
+async function jackpot() {
+  jackMeter -= jackNeed; jackNeed += 15; paused = true; updateJack();
+  let roll = Math.random() * 100, pick = JACK[0];
+  for (const j of JACK) { if (roll < j.w) { pick = j; break; } roll -= j.w; }
+  if (forceJack) { pick = JACK.find(j => j.id === forceJack) || pick; forceJack = null; }
+  if (SPD >= 1) await slotShow(pick);
+  await applyJackpot(pick.id);
+  paused = false;
+  await settle();
+}
+function plainGems(n) {
+  const pool = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const k = grid[r][c]; if (k && k.kind === 'gem' && !k.sp) pool.push([r, c]); }
+  return pool.sort(() => Math.random() - .5).slice(0, n);
+}
+async function applyJackpot(id) {
+  cascade = 1;
+  const arm = async kinds => {   // turn random pieces into power pieces, then set them all off
+    const ps = plainGems(kinds.length);
+    for (let i = 0; i < ps.length; i++) {
+      const [r, c] = ps[i], k = grid[r][c];
+      k.sp = kinds[i]; k.s = 1.6; tween(k, { s: 1 }, 260, E.back); ring(c, r, 1, '#ffd34d', 300); sfx.special();
+      await wait(130);
+    }
+    await wait(280);
+    if (ps.length) await clearSet(ps);
+  };
+  const line = () => (Math.random() < .5 ? 'h' : 'v');
+  if (id === 'cherry') await arm(['bomb', 'bomb', 'bomb']);
+  else if (id === 'bell') await arm([line(), line(), line(), line()]);
+  else if (id === 'clover') { sfx.prism(); flash(); await clearSet(area('prism', 0, 0)); }
+  else if (id === 'dice') { if (timed) timeLeft += 8; else moves += 3; score += 500; updateHUD(); await wait(300); }
+  else if (id === 'seven') { score += 3000; shake = 20; flash(); updateHUD(); await arm(['bomb', 'bomb', 'h', 'v', 'prism']); }
+}
+function slotShow(pick) {
+  return new Promise(done => {
+    const el = $('#slot'), reels = [...el.querySelectorAll('.strip')], res = el.querySelector('.res');
+    const H = 76, pool = ['v0', 'v3', 'v2', 'v4', 'seven', 'v5', 'v1'];
+    res.innerHTML = '&nbsp;'; el.classList.remove('win', 'big'); el.classList.add('on');
+    maple.game.play('wag'); sfx.lever();
+    reels.forEach((s, i) => {
+      const n = 14 + i * 7, items = [];
+      for (let j = 0; j < n - 1; j++) items.push(pool[Math.floor(Math.random() * pool.length)]);
+      items.push(pick.img);
+      s.style.transition = 'none'; s.style.transform = 'translateY(0)';
+      s.innerHTML = items.map(k => `<div class="it"><img src="art/vegas/${k}.png"></div>`).join('');
+      void s.offsetHeight;
+      const dur = 1100 + i * 500;
+      s.style.transition = `transform ${dur}ms cubic-bezier(.12,.75,.25,1)`;
+      s.style.transform = `translateY(${-(n - 1) * H}px)`;
+      setTimeout(() => sfx.reelStop(), dur);
+    });
+    const tick = setInterval(() => sfx.reel(), 85);
+    setTimeout(() => {
+      clearInterval(tick);
+      const sub = pick.id === 'dice' ? (timed ? '+8 seconds' : '+3 moves') : pick.sub;
+      res.innerHTML = `<b>${pick.name}</b><span>${sub}</span>`;
+      el.classList.add('win'); if (pick.id === 'seven') el.classList.add('big');
+      sfx.jackpot(pick.id === 'seven'); maple.game.play('jump');
+      setTimeout(() => { el.classList.remove('on'); done(); }, pick.id === 'seven' ? 1900 : 1300);
+    }, 2250);
+  });
+}
+function updateJack() {
+  const el = $('#jack'); el.hidden = !(LV && LV.vegas);
+  if (el.hidden) return;
+  const p = Math.min(1, jackMeter / jackNeed);
+  $('#jackfill').style.width = (p * 100) + '%';
+  el.classList.toggle('hot', p >= .8);
+}
+
 async function win() {
   ended = true; busy = true;
+  if (timed) { moves = Math.min(10, Math.floor(timeLeft / 4)); timed = false; timeLeft = 0; }
   sfx.win(); maple.game.play('wag');
   bigText('Goal reached!', true);
   await wait(1100);
   if (moves > 0) {
-    bigText("Maple's Bonus Dig!", true);
+    bigText(LV.vegas ? "Whiskey's Bonus Round!" : "Maple's Bonus Dig!", true);
     await wait(500);
     while (moves > 0) {
       const pool = [];
@@ -554,16 +773,16 @@ async function win() {
   for (let i = 0; i < gained; i++) { const k = ['hammer', 'shuffle', 'paw'][Math.floor(Math.random() * 3)]; save.boost[k]++; reward.push(k); }
   save.stars[LV.idx] = Math.max(prev, stars);
   save.best[LV.idx] = Math.max(save.best[LV.idx] || 0, score);
-  save.unlocked = Math.max(save.unlocked, Math.min(LEVELS.length, LV.idx + 2));
+  if (LV.stage === 0) save.unlocked = Math.max(save.unlocked, Math.min(STAGES[0].n, LV.idx + 2));
   persist();
   const icons = { hammer: '🔨', shuffle: '🔀', paw: '💥' };
-  const last = LV.idx === LEVELS.length - 1;
+  const last = LV.num === STAGES[LV.stage].n;
   modal(`
     <h2>${last ? 'You did it!' : 'Level clear!'}</h2>
     <div class="big-stars"><span>★</span><span>★</span><span>★</span></div>
     <p style="font-size:26px;font-weight:900">${score.toLocaleString()}</p>
     ${reward.length ? `<p>New stars earned you: <b style="font-size:22px">${reward.map(k => icons[k]).join(' ')}</b></p>` : ''}
-    ${last ? '<p>All 30 digs done. Maple is very proud of you. ♥</p>' : ''}
+    ${last ? (LV.vegas ? '<p>You ran the whole Strip. Whiskey and Tiki are purring. ♥</p>' : '<p>All 30 digs done. Maple is very proud of you. ♥</p>') : ''}
     <div class="btns">
       ${last ? '' : '<button class="btn" data-a="next">Next level ›</button>'}
       <button class="btn alt" data-a="retry">Play again</button>
@@ -579,16 +798,17 @@ function lose() {
   ended = true;
   if (!extraUsed) {
     sfx.lose();
-    modal(`<h2>Out of moves!</h2>
+    const who = LV.vegas ? 'Whiskey won you' : 'Maple sniffed out';
+    modal(`<h2>${timed ? "Time's up!" : 'Out of moves!'}</h2>
       <div class="goals-list">${goalChips()}</div>
-      <p>Maple sniffed out <b>5 extra moves</b> for you. Free, of course.</p>
-      <div class="btns"><button class="btn" data-a="more">+5 moves 🦴</button><button class="btn alt" data-a="quit">Give up</button></div>`,
-      { more: () => { extraUsed = true; ended = false; moves += 5; updateHUD(); maple.game.play('wag'); }, quit: () => failed() });
+      <p>${who} <b>${timed ? '15 extra seconds' : '5 extra moves'}</b>. Free, of course.</p>
+      <div class="btns"><button class="btn" data-a="more">${timed ? '+15 seconds ⏱' : LV.vegas ? '+5 moves 🎰' : '+5 moves 🦴'}</button><button class="btn alt" data-a="quit">Give up</button></div>`,
+      { more: () => { extraUsed = true; ended = false; if (timed) timeLeft += 15; else moves += 5; updateHUD(); maple.game.play('wag'); }, quit: () => failed() });
   } else failed();
 }
 function failed() {
   sfx.lose();
-  modal(`<h2>So close!</h2><div class="goals-list">${goalChips()}</div><p>Every dig gets you closer.</p>
+  modal(`<h2>So close!</h2><div class="goals-list">${goalChips()}</div><p>${LV.vegas ? 'The next spin could be the lucky one.' : 'Every dig gets you closer.'}</p>
     <div class="btns"><button class="btn" data-a="retry">Try again</button><button class="btn alt" data-a="map">Level map</button></div>`,
     { retry: () => intro(LV.idx), map: () => showMap() });
 }
@@ -608,6 +828,7 @@ async function useBoosterAt(r, c) {
     await clearSet(area('bomb2', r, c));
   }
   await settle();
+  await jackpots();
   busy = false; lastInput = performance.now();
   afterMove();
 }
@@ -646,8 +867,9 @@ function floatText(txt, c, r, col) { if (SPD < 1) return; fx.push({ t: 'txt', tx
 let flashA = 0;
 function flash() { flashA = .7; }
 const COMBO_WORDS = ['', '', 'Nice!', 'Sparkly!', 'Dazzling!', 'Radiant!', 'Legendary!', 'MAPLE MODE!'];
+const VEGAS_WORDS = ['', '', 'Nice!', 'Lucky!', 'On a roll!', 'Hot streak!', 'High roller!', 'WHISKEY MODE!'];
 function comboText(k) {
-  bigText(COMBO_WORDS[Math.min(k, 7)], k >= 5);
+  bigText((LV.vegas ? VEGAS_WORDS : COMBO_WORDS)[Math.min(k, 7)], k >= 5);
   if (k >= 3) maple.game.play('jump');
 }
 let bannerT = 0;
@@ -663,7 +885,7 @@ let cs = 40, dpr = 1;
 function resize() {
   dpr = Math.min(3, window.devicePixelRatio || 1);
   const vw = window.innerWidth, vh = window.innerHeight;
-  const top = $('#top').offsetHeight + $('#goals').offsetHeight + 120 + 34;
+  const top = $('#top').offsetHeight + $('#goals').offsetHeight + $('#jack').offsetHeight + 120 + 34;
   const size = Math.max(240, Math.min(vw - 28, vh - top, 560));
   cs = Math.floor(size / COLS);
   const px = cs * COLS;
@@ -678,8 +900,18 @@ let lastT = 0;
 function frame(t) {
   const dt = Math.min(.05, (t - lastT) / 1000 || 0); lastT = t;
   stepTweens(t);
-  if ($('#game').classList.contains('on')) { draw(t, dt); hintTick(t); }
-  maple.game.tick(t); maple.map.tick(t);
+  if ($('#game').classList.contains('on')) {
+    draw(t, dt); hintTick(t);
+    // Happy Hour clock: runs from her first move, stops for the slot machine and any pop-up
+    if (timed && timeStarted && !ended && !paused && SPD >= 1 && !$('#modal').classList.contains('on')) {
+      const before = Math.ceil(timeLeft);
+      timeLeft = Math.max(0, timeLeft - dt);
+      const now = Math.ceil(timeLeft);
+      if (now !== before) { updateHUD(); if (now <= 5 && now > 0) sfx.tick(); }
+      if (timeLeft <= 0 && !busy) afterMove();
+    }
+  }
+  for (const v of Object.values(maple)) v.tick(t);
   requestAnimationFrame(frame);
 }
 
@@ -695,8 +927,9 @@ function draw(t, dt) {
     ctx.fillStyle = (r + c) % 2 ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.13)';
     rr(c * S + 1.5 * dpr, r * S + 1.5 * dpr, S - 3 * dpr, S - 3 * dpr, S * .18); ctx.fill();
   }
+  if (LV.vegas) drawLights(t, S);
   // ice under-glow (tile tint)
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (ice[r][c]) {
+  if (!LV.vegas) for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (ice[r][c]) {
     ctx.fillStyle = ice[r][c] === 2 ? 'rgba(140,210,255,.38)' : 'rgba(140,210,255,.22)';
     rr(c * S + 1.5 * dpr, r * S + 1.5 * dpr, S - 3 * dpr, S - 3 * dpr, S * .18); ctx.fill();
   }
@@ -710,7 +943,7 @@ function draw(t, dt) {
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const k = grid[r][c]; if (k) drawCell(k, t, S, hintIds.includes(k.id)); }
   for (const k of dying) drawCell(k, t, S, false);
   // ice over gems
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (ice[r][c]) {
+  if (!LV.vegas) for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (ice[r][c]) {
     const x = c * S + 2 * dpr, y = r * S + 2 * dpr, w = S - 4 * dpr, thick = ice[r][c] === 2;
     // frosted pane
     const gr = ctx.createLinearGradient(x, y, x + w, y + w);
@@ -731,6 +964,27 @@ function draw(t, dt) {
   }
   drawFx(dt, S);
   if (flashA > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = `rgba(255,255,255,${flashA})`; ctx.fillRect(0, 0, bc.width, bc.height); flashA = Math.max(0, flashA - dt * 2.2); }
+}
+
+// Vegas bulbs sit UNDER the pieces: dark = off, pink dashes = one more match, gold glow = lit.
+function drawLights(t, S) {
+  if (!LV.ice) return;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (!(+LV.ice[r][c])) continue;
+    const x = c * S + 1.5 * dpr, y = r * S + 1.5 * dpr, w = S - 3 * dpr, v = ice[r][c];
+    if (v === 0) {
+      const pulse = .78 + Math.sin(t / 320 + r * 1.3 + c * .7) * .22;
+      ctx.fillStyle = `rgba(255,205,70,${.6 * pulse})`; rr(x, y, w, w, S * .18); ctx.fill();
+      ctx.strokeStyle = `rgba(255,244,190,${.95 * pulse})`; ctx.lineWidth = 2.5 * dpr; ctx.stroke();
+    } else {
+      ctx.fillStyle = v === 2 ? 'rgba(6,3,16,.9)' : 'rgba(40,14,70,.85)'; rr(x, y, w, w, S * .18); ctx.fill();
+      ctx.strokeStyle = v === 2 ? 'rgba(130,120,165,.9)' : 'rgba(255,120,210,.85)'; ctx.lineWidth = 2 * dpr;
+      ctx.setLineDash([3 * dpr, 4 * dpr]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = v === 2 ? '#6b6485' : '#ff9ad8';
+      const d = w * .16;
+      for (const [bx, by] of [[x + d, y + d], [x + w - d, y + d], [x + d, y + w - d], [x + w - d, y + w - d]]) { ctx.beginPath(); ctx.arc(bx, by, 2.2 * dpr, 0, 7); ctx.fill(); }
+    }
+  }
 }
 
 function drawCell(k, t, S, isHint) {
@@ -754,14 +1008,16 @@ function drawCell(k, t, S, isHint) {
     g.addColorStop(0, `hsla(${hue},100%,75%,.9)`); g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g; ctx.fillRect(cx - S * .7, cy - S * .7, S * 1.4, S * 1.4);
   }
-  const img = k.kind === 'bone' ? IMG.bone : k.sp === 'prism' ? IMG.prism : IMG[GEMS[k.c]];
+  const img = k.kind === 'bone' ? IMG.bone : k.kind === 'box' ? (k.hp > 1 ? IMG.box : IMG.tikibox)
+    : k.sp === 'prism' ? (LV.vegas ? IMG.disco : IMG.prism) : LV.vegas ? IMG['v' + k.c] : IMG[GEMS[k.c]];
   if (k.sp === 'prism') {
     ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.sin(t / 300) * .25);
     if (img) ctx.drawImage(img, -size / 2, -size / 2, size, size);
     ctx.restore();
-  } else if (k.kind === 'bone') {
+  } else if (k.kind !== 'gem') {
     const bob = Math.sin(t / 250 + k.id) * S * .04;
-    if (img) ctx.drawImage(img, cx - size / 2, cy - size / 2 + bob, size, size);
+    const z = k.kind === 'box' && k.hp <= 1 ? size * 1.7 : size;   // Tiki's own sprite is small inside its frame
+    if (img) ctx.drawImage(img, cx - z / 2, cy - z / 2 + bob - (z - size) * .12, z, z);
   } else if (img) ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
   else { ctx.fillStyle = GEM_COL[k.c] || '#fff'; ctx.beginPath(); ctx.arc(cx, cy, size * .35, 0, 7); ctx.fill(); }
   // line blaster stripes
@@ -839,23 +1095,48 @@ function hintTick(t) {
 }
 
 /* ================= Maple sprite ================= */
+// The game asks every mascot for the same four moods; each pet answers with the animation it has.
+const ALIAS = {
+  whiskey: { idle: 'loaf', pant: 'yawn', wag: 'swat', jump: 'jump' },
+  tiki: { idle: 'stand', pant: 'stand', wag: 'swat', jump: 'jump' },
+};
 class MapleView {
-  constructor(canvas) { this.cv = canvas; this.cx = canvas.getContext('2d'); this.anim = 'idle'; this.f = 0; this.nt = 0; this.once = false; }
-  play(name) { if (!MAPLE[name] || !MAPLE[name].length) return; this.anim = name; this.f = 0; this.once = name !== 'idle'; this.loops = name === 'wag' || name === 'pant' ? 2 : 1; }
+  constructor(canvas) { this.cv = canvas; this.cx = canvas.getContext('2d'); this.who = 'maple'; this.home = 'idle'; this.anim = 'idle'; this.f = 0; this.nt = 0; this.once = false; this.link = null; }
+  res(name) { const a = ALIAS[this.who]; return (a && a[name]) || name; }
+  set(who, home = 'idle') { this.who = who; this.home = home; this.anim = this.res(home); this.f = 0; this.once = false; this.nt = 0; }
+  play(name) {
+    if (this.link) this.link.play(name);
+    const n = this.res(name), fr = FR[this.who] && FR[this.who][n];
+    if (!fr || !fr.length) return;
+    this.anim = n; this.f = 0; this.once = n !== this.res(this.home);
+    this.loops = this.who === 'maple' && (name === 'wag' || name === 'pant') ? 2 : this.who !== 'maple' && name === 'wag' ? 2 : 1;
+  }
   tick(t) {
     if (!this.cv.offsetParent) return;
-    const fr = MAPLE[this.anim]; if (!fr || !fr.length) return;
+    let fr = FR[this.who] && FR[this.who][this.anim]; if (!fr || !fr.length) return;
     if (t > this.nt) {
-      this.nt = t + (this.anim === 'jump' ? 85 : 120);
+      this.nt = t + (this.anim === 'jump' ? 85 : this.anim === 'loaf' ? 190 : 120);
       this.f++;
-      if (this.f >= fr.length) { this.f = 0; if (this.once && --this.loops <= 0) { this.anim = this.home || 'idle'; this.once = false; } }
-      const img = MAPLE[this.anim][this.f % MAPLE[this.anim].length];
-      this.cx.imageSmoothingEnabled = false; this.cx.clearRect(0, 0, 64, 64); if (img) this.cx.drawImage(img, 0, 0, 64, 64);
+      if (this.f >= fr.length) { this.f = 0; if (this.once && --this.loops <= 0) { this.anim = this.res(this.home); this.once = false; fr = FR[this.who][this.anim] || fr; } }
+      const img = fr[this.f % fr.length], x = this.cx;
+      x.imageSmoothingEnabled = false; x.clearRect(0, 0, 64, 64);
+      if (!img) return;
+      if (this.who === 'maple') x.drawImage(img, 0, 0, 64, 64);   // Maple is never mirrored
+      else { x.save(); x.translate(64, 0); x.scale(-1, 1); x.drawImage(img, 0, 0, 64, 64); x.restore(); }   // the cats face the board
     }
   }
 }
-const maple = { game: new MapleView($('#game-maple')), map: new MapleView($('#map-maple')) };
-maple.map.home = 'wag'; maple.map.anim = 'wag';
+const maple = {
+  game: new MapleView($('#game-maple')), map: new MapleView($('#map-maple')),
+  buddy: new MapleView($('#game-buddy')), mapBuddy: new MapleView($('#map-buddy')),
+};
+maple.game.link = maple.buddy;
+function setMascots(stage) {
+  const v = stage === 1;
+  maple.game.set(v ? 'whiskey' : 'maple', 'idle'); maple.map.set(v ? 'whiskey' : 'maple', v ? 'idle' : 'wag');
+  maple.buddy.set('tiki'); maple.mapBuddy.set('tiki');
+  $('#game-buddy').hidden = $('#map-buddy').hidden = !v;
+}
 
 /* ================= input ================= */
 let drag = null;
@@ -907,32 +1188,35 @@ $('#back').onclick = () => {
 };
 
 /* ================= HUD ================= */
-function goalIcon(g) {
-  if (g.t === 'color') return `art/${GEMS[g.c]}.png`;
+function goalIcon(g, vegas = LV && LV.vegas) {
+  if (g.t === 'color') return vegas ? `art/vegas/v${g.c}.png` : `art/${GEMS[g.c]}.png`;
   if (g.t === 'bone') return 'art/bone.png';
-  if (g.t === 'ice') return 'art/ice.png';
-  return 'art/prism.png';
+  if (g.t === 'box') return g.hp > 1 ? 'art/vegas/box.png' : 'art/tiki/box.png';
+  if (g.t === 'ice') return vegas ? BULB_SRC : 'art/ice.png';
+  return vegas ? 'art/vegas/coin.png' : 'art/prism.png';
 }
 function goalLabel(g) {
   if (g.t === 'score') return Math.max(0, g.n - score).toLocaleString();
-  if (g.t === 'bone') return `${g.have}/${g.n}`;
+  if (g.t === 'bone' || g.t === 'box') return `${g.have}/${g.n}`;
   return Math.max(0, g.n - g.have);
 }
 function buildGoals() {
   $('#goals').innerHTML = goals.map((g, i) => `<div class="goal box" id="goal${i}"><img src="${goalIcon(g)}"><span></span></div>`).join('');
 }
 function goalChips() {
-  return goals.map(g => `<div class="goal box ${goalDone(g) ? 'done' : ''}"><img src="${goalIcon(g)}"><span>${goalDone(g) ? '✓' : (g.t === 'score' ? g.n.toLocaleString() : g.t === 'bone' ? g.have + '/' + g.n : g.n)}</span></div>`).join('');
+  return goals.map(g => `<div class="goal box ${goalDone(g) ? 'done' : ''}"><img src="${goalIcon(g)}"><span>${goalDone(g) ? '✓' : (g.t === 'score' ? g.n.toLocaleString() : g.t === 'bone' || g.t === 'box' ? g.have + '/' + g.n : g.n)}</span></div>`).join('');
 }
 function bumpGoal(g) {
   const el = document.getElementById('goal' + goals.indexOf(g)); if (!el) return;
   el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
 }
 function updateHUD() {
-  $('#moves').textContent = moves;
-  $('#moves').classList.toggle('low', moves <= 3 && !ended);
+  $('#moves').textContent = timed ? Math.ceil(timeLeft) : moves;
+  $('#moves').classList.toggle('low', (timed ? timeLeft <= 10 : moves <= 3) && !ended);
+  $('#moveslbl').textContent = timed ? 'secs' : 'moves';
   $('#score').textContent = score.toLocaleString();
-  $('#lvlname').textContent = `Level ${LV.idx + 1}${LV.name ? ' · ' + LV.name : ''}`;
+  $('#lvlname').textContent = `Level ${LV.num}${LV.name ? ' · ' + LV.name : ''}`;
+  updateJack();
   $('#fill').style.width = Math.min(100, score / LV.s3 * 100) + '%';
   $('#bs2').style.left = (LV.s2 / LV.s3 * 100) + '%';
   $('#bs1').classList.toggle('on', allDone());
@@ -950,7 +1234,8 @@ function updateBoosters() {
     const b = $('#b-' + k); b.querySelector('.n').textContent = save.boost[k];
     b.classList.toggle('on', boosterMode === k); b.disabled = save.boost[k] <= 0;
   }
-  $('#tip').textContent = boosterMode === 'hammer' ? 'Tap a gem to smash it' : boosterMode === 'paw' ? 'Tap a spot to blast a 5×5 area' : '';
+  $('#tip').textContent = boosterMode === 'hammer' ? 'Tap a piece to smash it' : boosterMode === 'paw' ? 'Tap a spot to blast a 5×5 area'
+    : timed && !timeStarted && !ended ? 'The clock starts on your first move' : '';
 }
 
 /* ================= screens / modal ================= */
@@ -961,8 +1246,20 @@ function modal(html, actions = {}) {
 }
 function totalStars() { return Object.values(save.stars).reduce((a, b) => a + b, 0); }
 const CHEST_EVERY = 9;
+// A level is open if it starts its stage, the one before it has a star, or (Crystal Cave) the old save says so.
+const isOpen = i => i === STAGES[stageOf(i)].start || (save.stars[i - 1] || 0) > 0 || (stageOf(i) === 0 && i < save.unlocked);
+const TITLES = [
+  "Maple's<br>Gem Dig<small>✦ no ads · no paywalls ✦</small>",
+  'Vegas<br>Nights<small>✦ starring Whiskey &amp; Tiki ✦</small>',
+];
 function showMap() {
   show('map'); ended = true;
+  const stg = STAGES[save.stage] ? save.stage : 0, st0 = STAGES[stg];
+  document.body.classList.toggle('vegas', stg === 1);
+  setMascots(stg);
+  $('#map .title').innerHTML = TITLES[stg];
+  document.querySelectorAll('#stages button').forEach(b => b.classList.toggle('on', +b.dataset.s === stg));
+  $('#stage-new').hidden = Object.keys(save.stars).some(i => +i >= STAGES[1].start);
   const ts = totalStars();
   $('#total-stars').textContent = `${ts} / ${LEVELS.length * 3}`;
   $('#bp-h').textContent = save.boost.hammer; $('#bp-s').textContent = save.boost.shuffle; $('#bp-p').textContent = save.boost.paw;
@@ -971,22 +1268,27 @@ function showMap() {
   $('#chest-prog').textContent = `🎁 ${ts % CHEST_EVERY}/${CHEST_EVERY}★ to next treasure`;
   $('#sound-btn').textContent = save.sound ? '🔊 Sound on' : '🔇 Sound off';
   const lv = $('#levels'); lv.innerHTML = '';
+  let curSet = false;
   LEVELS.forEach((L, i) => {
+    if (stageOf(i) !== stg) return;
     const b = document.createElement('button');
-    const st = save.stars[i] || 0, locked = i + 1 > save.unlocked, cur = i + 1 === save.unlocked && !st;
+    const st = save.stars[i] || 0, locked = !isOpen(i), cur = !locked && !st && !curSet;
+    if (cur) curSet = true;
+    const label = L.name && L.name.includes('♥') ? '♥' : L.time ? '⏱' : i - st0.start + 1;
     b.className = 'lv' + (locked ? ' lock' : st ? ' done' : '') + (cur ? ' cur' : '');
-    b.innerHTML = locked ? '🔒' : `${L.name ? '♥' : i + 1}<span class="stars">${[0, 1, 2].map(j => `<span class="${j < st ? '' : 'off'}">★</span>`).join('')}</span>`;
+    b.innerHTML = locked ? '🔒' : `${label}<span class="stars">${[0, 1, 2].map(j => `<span class="${j < st ? '' : 'off'}">★</span>`).join('')}</span>`;
     if (!locked) b.onclick = () => { ac(); sfx.tap(); intro(i); };
     lv.appendChild(b);
   });
   const cur = lv.querySelector('.cur'); if (cur) setTimeout(() => cur.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
 }
+document.querySelectorAll('#stages button').forEach(b => b.onclick = () => { ac(); sfx.tap(); save.stage = +b.dataset.s; persist(); showMap(); $('#map').scrollTop = 0; });
 $('#chest-btn').onclick = () => {
   ac(); save.chests++; save.boost.hammer++; save.boost.shuffle++; save.boost.paw++; persist(); sfx.win();
   modal(`<h2>Treasure!</h2><p style="font-size:44px;margin:8px 0">🔨 🔀 💥</p><p>Maple dug up one of each booster.</p><div class="btns"><button class="btn" data-a="ok">Yay!</button></div>`, { ok: showMap });
 };
 $('#sound-btn').onclick = () => { save.sound = !save.sound; persist(); ac(); sfx.tap(); showMap(); };
-$('#howto-btn').onclick = () => { ac(); howto(); };
+$('#howto-btn').onclick = () => { ac(); if (save.stage === 1) howtoVegas(); else howto(); };
 function howto(after) {
   modal(`<h2>How to play</h2><div class="howto">
     <div><span class="ic">👆</span>Swipe a gem into its neighbour to line up 3 or more of the same.</div>
@@ -998,15 +1300,30 @@ function howto(after) {
     <div><span class="ic">🎁</span>Boosters are free. Earn more with stars.</div>
   </div><div class="btns"><button class="btn" data-a="ok">Let's dig!</button></div>`, { ok: after || (() => { }) });
 }
+function howtoVegas(after) {
+  modal(`<h2>Vegas rules</h2><div class="howto">
+    <div><span class="ic"><img src="art/vegas/seven.png"></span><b>Jackpot meter:</b> every piece you clear fills it. When it's full, Whiskey spins the slot machine. It always pays out.</div>
+    <div><span class="ic"><img src="${BULB_SRC}"></span><b>Bulbs:</b> match on top of a dark tile to light it up. Light them all.</div>
+    <div><span class="ic"><img src="art/tiki/box.png"></span><b>Tiki's boxes:</b> make a match right next to a box to let her out. Boxes with a ribbon need two.</div>
+    <div><span class="ic"><img src="art/vegas/clock.png"></span><b>Happy Hour:</b> no move limit, just a clock. Go fast.</div>
+    <div><span class="ic"><img src="art/vegas/disco.png"></span>Blasters, bombs and boosters work the same. The disco ball is the Vegas prism.</div>
+  </div><div class="btns"><button class="btn" data-a="ok">Let's roll!</button></div>`, { ok: after || (() => { }) });
+}
+const PIECE_WORDS = [GEMS, ['cherries', 'chips', 'clovers', 'bells', 'dice', 'flamingos']];
 function intro(i) {
   const L = levelDef(i);
-  const chips = L.goals.map(g => `<div class="goal box"><img src="${g.t === 'color' ? 'art/' + GEMS[g.c] + '.png' : g.t === 'bone' ? 'art/bone.png' : g.t === 'ice' ? 'art/ice.png' : 'art/prism.png'}"><span>${g.t === 'score' ? g.n.toLocaleString() : g.t === 'ice' ? 'all' : g.n}</span></div>`).join('');
-  const words = L.goals.map(g => g.t === 'score' ? `Score ${g.n.toLocaleString()}` : g.t === 'color' ? `Collect ${g.n} ${GEMS[g.c]}` : g.t === 'bone' ? `Bring ${g.n} golden bone${g.n > 1 ? 's' : ''} down to the bottom row` : 'Break all the ice').join(' · ');
-  const go = () => modal(`<h2>Level ${i + 1}</h2>${L.name ? `<p style="color:#ff9ad8;font-weight:900;font-size:20px">${L.name}</p>` : ''}
-    <div class="goals-list">${chips}</div><p>${words}</p><p style="opacity:.7">${L.moves} moves</p>
+  const chips = L.goals.map(g => `<div class="goal box"><img src="${goalIcon(g, L.vegas)}"><span>${g.t === 'score' ? g.n.toLocaleString() : g.t === 'ice' ? 'all' : g.n}</span></div>`).join('');
+  const words = L.goals.map(g => g.t === 'score' ? `Score ${g.n.toLocaleString()}`
+    : g.t === 'color' ? `Collect ${g.n} ${PIECE_WORDS[L.stage][g.c]}`
+    : g.t === 'bone' ? `Bring ${g.n} golden bone${g.n > 1 ? 's' : ''} down to the bottom row`
+    : g.t === 'box' ? `Let Tiki out of ${g.n} box${g.n > 1 ? 'es' : ''}${g.hp > 1 ? ' (two knocks each)' : ''}`
+    : L.vegas ? 'Light up every bulb' : 'Break all the ice').join(' · ');
+  const go = () => modal(`<h2>Level ${L.num}</h2>${L.name ? `<p style="color:#ff9ad8;font-weight:900;font-size:20px">${L.name}</p>` : ''}
+    <div class="goals-list">${chips}</div><p>${words}</p><p style="opacity:.7">${L.time ? `${L.time} seconds · no move limit` : `${L.moves} moves`}</p>
     <div class="btns"><button class="btn" data-a="go">Play</button><button class="btn alt" data-a="back">Back</button></div>`,
     { go: () => startLevel(i), back: () => { } });
-  if (!save.seenHowto) { save.seenHowto = true; persist(); howto(go); } else go();
+  if (L.vegas && !save.seenVegas) { save.seenVegas = true; save.seenHowto = true; persist(); howtoVegas(go); }
+  else if (!save.seenHowto) { save.seenHowto = true; persist(); howto(go); } else go();
 }
 
 /* ================= boot ================= */
@@ -1022,5 +1339,7 @@ function intro(i) {
 /* ================= test hooks (used for balancing) ================= */
 window.__gem = {
   get state() { return { moves, score, goals, ended, busy, LV }; },
+  get state() { return { moves, score, goals, ended, busy, LV, timed, timeLeft, jackMeter, jackNeed }; },
   startLevel, findMoves, findMatches, trySwap, setSpeed: v => SPD = v, save, get grid() { return grid; }, get ice() { return ice; },
+  LEVELS, STAGES, forceJack: id => { forceJack = id; jackMeter = jackNeed; }, jackpots, showMap, slotShow, JACK,
 };
