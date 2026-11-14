@@ -124,13 +124,13 @@ body.vegas .lv.done{background:linear-gradient(180deg,#3fd0c0,#178a8a);box-shado
 body.vegas .lv.cur{background:linear-gradient(180deg,#ffe066,#ffaa22);color:#4a2300;box-shadow:0 5px 0 #a35a00,0 0 18px rgba(255,210,80,.8)}
 body.vegas .lv.lock{background:rgba(255,255,255,.08);box-shadow:none}
 #stages{display:flex;gap:8px;margin:10px 0 2px;width:100%;max-width:420px}
-#stages button{flex:1;position:relative;padding:10px 6px;border-radius:14px;font-weight:900;font-size:15px;background:var(--panel);border:2px solid rgba(255,255,255,.18);opacity:.75}
+#stages button{flex:1;position:relative;padding:7px 2px 8px;border-radius:14px;font-weight:900;font-size:13px;background:var(--panel);border:2px solid rgba(255,255,255,.18);opacity:.75}
+#stages button i{display:block;font-style:normal;font-size:20px;line-height:1.15}
 #stages button.on{opacity:1;border-color:var(--gold);box-shadow:0 0 14px rgba(255,210,80,.55)}
-#stage-new{position:absolute;top:-9px;right:-4px;background:#ff3d7a;border-radius:9px;font-size:11px;padding:2px 7px;box-shadow:0 2px 0 #7a0030;animation:pulse 1s infinite}
-#stage-new[hidden]{display:none}
+.stage-new{position:absolute;top:-9px;right:-4px;background:#ff3d7a;border-radius:9px;font-size:11px;padding:2px 7px;box-shadow:0 2px 0 #7a0030;animation:pulse 1s infinite}
 #mascots{display:flex;align-items:flex-end;justify-content:center}
 #map-buddy{width:96px;height:96px;image-rendering:pixelated;margin:0 0 -4px -14px}
-#map-buddy[hidden],#game-buddy[hidden],#jack[hidden]{display:none}
+#map-buddy[hidden],#game-buddy[hidden],#jack[hidden],#gift-egg[hidden],#shoot[hidden],#dex-btn[hidden]{display:none}
 #pets{display:flex;align-items:flex-end}
 #game-buddy{width:84px;height:84px;image-rendering:pixelated;margin:0 -26px -6px 0}
 body.vegas #game-maple{width:104px;height:104px;margin:-8px -6px -6px 0}
@@ -155,6 +155,79 @@ body.vegas #game-maple{width:104px;height:104px;margin:-8px -6px -6px 0}
 #slot .res span{font-size:15px;font-weight:800;color:#ffe9a8}
 #slot.win .reels{box-shadow:0 0 24px #ffd34d;animation:pulse .4s 3}
 #slot.big .res b{font-size:34px;color:#ffe14d;text-shadow:0 3px 0 #6a2a00,0 0 18px #ffb300}
+/* ---------- stage 3: Dino Dig ---------- */
+body.dino{background-image:url(art/dino/bg1.png)}
+body.dino[data-era="0"]{background-image:url(art/dino/bg0.png)}
+body.dino[data-era="2"]{background-image:url(art/dino/bg2.png)}
+body.dino::before{background:radial-gradient(ellipse at 50% 45%,rgba(8,16,20,.4),rgba(4,8,14,.82))}
+body.dino .title{background:linear-gradient(180deg,#fffbe0,#c8f27a 42%,#3fbf7a);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 3px 0 #173d2a) drop-shadow(0 0 14px rgba(120,230,140,.55))}
+body.dino .title small{-webkit-text-fill-color:#ffe9a8;color:#ffe9a8;letter-spacing:2px;font-size:17px}
+body.dino #boardwrap{border-color:#c9a36a;box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 20px rgba(120,220,130,.35),inset 0 0 30px rgba(200,160,90,.14)}
+body.dino .lv{background:linear-gradient(180deg,#62c46e,#2b7d48);box-shadow:0 5px 0 #17452a,inset 0 2px 0 rgba(255,255,255,.35)}
+body.dino .lv.done{background:linear-gradient(180deg,#f6e4b8,#cfa25c);box-shadow:0 5px 0 #7a5524,inset 0 2px 0 rgba(255,255,255,.5);color:#3a2408}
+body.dino .lv.cur{background:linear-gradient(180deg,#ffe066,#ffaa22);color:#4a2300;box-shadow:0 5px 0 #a35a00,0 0 18px rgba(255,210,80,.8)}
+body.dino .lv.lock{background:rgba(255,255,255,.08);box-shadow:none}
+.lv img{width:78%;height:78%;image-rendering:pixelated;margin-top:-9px;pointer-events:none}
+.era{grid-column:1/-1;width:100%;max-width:420px;margin:8px 0 0;padding:6px 12px;border-radius:12px;background:var(--panel);border:2px solid rgba(255,255,255,.14);display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;text-align:left}
+.era b{color:var(--gold);font-size:17px}.era span{font-size:12px;opacity:.8}.era i{flex-basis:100%;font-size:12px;opacity:.78;font-style:normal}
+body.dino #game-maple{width:112px;height:112px;margin:-12px -4px -8px 0}
+body.dino #game-buddy{width:92px;height:92px;margin:0 -24px -4px 0}
+body.dino #map-buddy{width:104px;height:104px;margin:0 0 -6px -20px}
+#jack.roar #jackimg{width:36px;height:36px;margin:-7px 0}
+#jack.roar #jackbar{border-color:rgba(190,240,110,.6)}
+#jack.roar #jackfill{background:linear-gradient(90deg,#3fbf7a,#ffe14d)}
+#jack.roar .lbl{color:#e4ffc0}
+#jack.ready #jackbar{box-shadow:0 0 14px #c8f27a;animation:pulse .5s infinite}
+#jack.ready .lbl{color:#fff;animation:blink .5s steps(2) infinite}
+#jack.ready #jackimg{animation:pulse .5s infinite}
+#gift-egg{background:none;padding:0;width:54px;height:54px;margin:0 -8px 4px 4px;animation:eggbob 1.6s ease-in-out infinite}
+#gift-egg img{width:100%;height:100%;image-rendering:pixelated;filter:drop-shadow(0 0 8px rgba(255,220,120,.9))}
+#gift-egg.wob{animation:wiggle .4s}
+@keyframes eggbob{50%{transform:translateY(-5px) rotate(4deg)}}
+#shoot{position:absolute;top:200px;left:-60px;width:44px;height:44px;background:none;padding:0;z-index:2;opacity:0;animation:shoot 17s linear infinite}
+#shoot img{width:100%;height:100%;image-rendering:pixelated}
+@keyframes shoot{0%,78%{opacity:0;transform:translate(0,0)}80%{opacity:1}97%{opacity:1}100%{opacity:0;transform:translate(118vw,-170px)}}
+#dex-btn{display:flex;align-items:center;gap:6px;padding:5px 12px 5px 8px}#dex-btn img{width:30px;height:30px;image-rendering:pixelated}#dex-btn b{color:var(--gold)}
+#dex{overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.dexhead{width:100%;max-width:420px;display:flex;align-items:center;gap:12px;margin:4px 0 2px}
+.dexhead div{flex:1;text-align:right}
+.dexhead b{display:block;font-size:26px;font-weight:900;color:var(--gold);text-shadow:0 3px 0 #6a2a00}
+.dexhead span{font-size:13px;opacity:.85}
+#dex-list{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:20px}
+.dexgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.dx{border-radius:16px;background:linear-gradient(180deg,#f6e7c3,#d9b877);color:#3a2408;font-size:12px;font-weight:900;display:flex;flex-direction:column;align-items:center;padding:4px 2px 7px;box-shadow:0 4px 0 #7a5524;min-width:0}
+.dx img{width:86%;aspect-ratio:1;image-rendering:pixelated;pointer-events:none}
+.dx span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;letter-spacing:-.3px}
+.dx.unk{background:rgba(255,255,255,.08);box-shadow:none;color:rgba(255,255,255,.45)}
+.dx.unk img,.dexpic.unk img,.who.unk img{filter:brightness(0) opacity(.5)}
+.dx.mine{outline:3px solid var(--gold);box-shadow:0 4px 0 #7a5524,0 0 14px rgba(255,210,80,.85)}
+.dx:active{transform:translateY(3px)}
+#card{max-height:100%;overflow-y:auto;touch-action:pan-y}
+.dexpic{width:150px;height:150px;border-radius:26px;background:radial-gradient(circle at 50% 62%,#fbf0d2,#cfa25c);border:3px solid #7a5524;padding:0;margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.dexpic img{width:128px;height:128px;image-rendering:pixelated;pointer-events:none}
+.taphint{font-size:10px;opacity:.55;letter-spacing:1.5px;text-transform:uppercase;margin:4px 0 0}
+#card .say{font-size:14px;color:#ffd7f3;margin:0 0 6px}
+.facts{text-align:left;font-size:14px;background:rgba(0,0,0,.25);border-radius:14px;padding:7px 12px;margin:6px 0}
+.facts div{display:flex;gap:8px;margin:3px 0;line-height:1.3}.facts b{flex:none;width:40px;color:var(--gold)}
+#card .fact{font-size:15px;text-align:left;margin:8px 2px}
+#card .pow{font-size:13px;opacity:.85}
+#card .newdino{color:#c8f27a;font-weight:900;letter-spacing:1px;font-size:15px;margin:0 0 8px;opacity:1}
+.who,.dyk{display:flex;align-items:center;gap:10px;text-align:left;background:rgba(0,0,0,.25);border-radius:14px;padding:6px 10px;margin:8px 0}
+.who img{width:64px;height:64px;image-rendering:pixelated;flex:none}
+.who b{display:block;color:var(--gold);font-size:16px}.who span{font-size:13px;opacity:.92;line-height:1.25;display:block}
+.dyk{font-size:13px;line-height:1.3}.dyk img{width:48px;height:48px;image-rendering:pixelated;flex:none}
+.dexpic.a-charge img{animation:a-charge .7s}.dexpic.a-tail img{animation:a-tail .7s}.dexpic.a-stomp img{animation:a-stomp .7s}
+.dexpic.a-roar img{animation:a-roar .8s}.dexpic.a-pack img{animation:a-pack .6s}.dexpic.a-swoop img{animation:a-swoop .8s}
+.dexpic.a-hop img{animation:a-hop .5s}.dexpic.a-reveal img{animation:a-reveal 1s}
+@keyframes a-charge{20%{transform:translateX(-16px) rotate(-6deg)}55%{transform:translateX(30px) rotate(5deg)}80%{transform:translateX(-4px)}}
+@keyframes a-tail{25%{transform:rotate(-16deg)}60%{transform:rotate(18deg)}85%{transform:rotate(-4deg)}}
+@keyframes a-stomp{20%{transform:translateY(-22px)}40%{transform:translateY(0) scale(1.1,.88)}60%{transform:translateY(-12px)}80%{transform:translateY(0) scale(1.06,.93)}}
+@keyframes a-roar{15%{transform:scale(1.18) rotate(-5deg)}30%{transform:scale(1.2) translateX(3px)}45%{transform:scale(1.2) translateX(-3px)}60%{transform:scale(1.2) translateX(3px)}75%{transform:scale(1.15) translateX(-2px)}}
+@keyframes a-pack{25%{transform:translate(-12px,-10px)}50%{transform:translate(0,0)}75%{transform:translate(12px,-10px)}}
+@keyframes a-swoop{30%{transform:translate(-18px,-26px) rotate(-14deg)}65%{transform:translate(20px,-8px) rotate(12deg)}}
+@keyframes a-hop{40%{transform:translateY(-16px) rotate(-4deg)}70%{transform:translateY(0) scale(1.05,.94)}}
+@keyframes a-reveal{0%{filter:brightness(0);transform:scale(.5)}45%{filter:brightness(0);transform:scale(1.1)}70%{filter:brightness(1.6);transform:scale(1.15)}100%{filter:none;transform:none}}
 .flyer{position:fixed;z-index:25;pointer-events:none;image-rendering:pixelated;filter:drop-shadow(0 0 8px #ffd34d)}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;z-index:50;background:#140a26}
 </style>
@@ -164,11 +237,9 @@ body.vegas #game-maple{width:104px;height:104px;margin:-8px -6px -6px 0}
 
 <div id="map" class="screen">
   <h1 class="title">Maple's<br>Gem Dig<small>✦ no ads · no paywalls ✦</small></h1>
-  <div id="mascots"><canvas id="map-maple" width="64" height="64"></canvas><canvas id="map-buddy" width="64" height="64" hidden></canvas></div>
-  <div id="stages">
-    <button data-s="0">💎 Crystal Cave</button>
-    <button data-s="1">🎰 Vegas Nights<span id="stage-new">NEW</span></button>
-  </div>
+  <button id="shoot" hidden aria-label="shooting star"><img src="art/dino/star.png" alt=""></button>
+  <div id="mascots"><canvas id="map-maple" width="64" height="64"></canvas><canvas id="map-buddy" width="64" height="64" hidden></canvas><button id="gift-egg" hidden aria-label="mystery egg"><img src="art/dino/giftegg.png" alt=""></button></div>
+  <div id="stages"></div>
   <div class="statrow">
     <div class="pill">⭐ <span id="total-stars">0</span></div>
     <div class="pill" id="boost-pill">🔨 <span id="bp-h">0</span> 🔀 <span id="bp-s">0</span> 💥 <span id="bp-p">0</span></div>
@@ -176,6 +247,7 @@ body.vegas #game-maple{width:104px;height:104px;margin:-8px -6px -6px 0}
   <div class="statrow"><button class="pill" id="chest-btn" hidden>🎁 Open treasure!</button><div class="pill" id="chest-prog"></div></div>
   <div id="levels"></div>
   <div class="maprow">
+    <button class="small-btn" id="dex-btn" hidden>Field Journal</button>
     <button class="small-btn" id="howto-btn">How to play</button>
     <button class="small-btn" id="sound-btn">🔊 Sound</button>
   </div>
@@ -191,7 +263,7 @@ body.vegas #game-maple{width:104px;height:104px;margin:-8px -6px -6px 0}
     </div>
   </div>
   <div id="goals"></div>
-  <div id="jack" hidden><img src="art/vegas/seven.png" alt=""><span class="lbl">Jackpot</span><div id="jackbar"><div id="jackfill"></div></div></div>
+  <div id="jack" hidden><img id="jackimg" src="art/vegas/seven.png" alt=""><span class="lbl" id="jacklbl">Jackpot</span><div id="jackbar"><div id="jackfill"></div></div></div>
   <div id="boardwrap"><canvas id="board"></canvas><div id="tip"></div></div>
   <div id="bottom">
     <div id="boosters">
@@ -201,6 +273,11 @@ body.vegas #game-maple{width:104px;height:104px;margin:-8px -6px -6px 0}
     </div>
     <div id="pets"><canvas id="game-buddy" width="64" height="64" hidden></canvas><canvas id="game-maple" width="64" height="64"></canvas></div>
   </div>
+</div>
+
+<div id="dex" class="screen">
+  <div class="dexhead"><button id="dex-back" class="small-btn">‹ Map</button><img src="art/dino/journal.png" alt="" style="width:56px;height:56px;image-rendering:pixelated;margin-left:auto"><div style="flex:none"><b>Field Journal</b><span id="dex-count"></span></div></div>
+  <div id="dex-list"></div>
 </div>
 
 <div id="slot"><div class="machine">
