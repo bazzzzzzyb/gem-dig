@@ -228,6 +228,47 @@ body.dino #map-buddy{width:104px;height:104px;margin:0 0 -6px -20px}
 @keyframes a-swoop{30%{transform:translate(-18px,-26px) rotate(-14deg)}65%{transform:translate(20px,-8px) rotate(12deg)}}
 @keyframes a-hop{40%{transform:translateY(-16px) rotate(-4deg)}70%{transform:translateY(0) scale(1.05,.94)}}
 @keyframes a-reveal{0%{filter:brightness(0);transform:scale(.5)}45%{filter:brightness(0);transform:scale(1.1)}70%{filter:brightness(1.6);transform:scale(1.15)}100%{filter:none;transform:none}}
+/* ---------- stages 4-6: Golf Classic, Pet Park, Maple Grove ---------- */
+#stages{display:grid;grid-template-columns:repeat(3,1fr)}   /* six stages now: two rows of three */
+body.golf{background-image:url(art/golf/bg.png)}
+body.golf::before{background:radial-gradient(ellipse at 50% 45%,rgba(6,24,18,.38),rgba(4,14,12,.8))}
+body.golf .title{background:linear-gradient(180deg,#fff,#fff3a8 42%,#ffb62e);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 3px 0 #1d5c2e) drop-shadow(0 0 14px rgba(150,230,120,.55))}
+body.golf .title small{-webkit-text-fill-color:#e9ffd0;color:#e9ffd0;letter-spacing:2px;font-size:17px}
+body.golf #boardwrap{border-color:#f4f1e4;box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 20px rgba(140,220,120,.4),inset 0 0 30px rgba(120,200,255,.12)}
+body.golf .lv{background:linear-gradient(180deg,#5cc3f0,#2a86c8);box-shadow:0 5px 0 #175a8c,inset 0 2px 0 rgba(255,255,255,.35)}
+body.golf .lv.done{background:linear-gradient(180deg,#7ddc6a,#35a14a);box-shadow:0 5px 0 #1d6a2c,inset 0 2px 0 rgba(255,255,255,.35)}
+body.golf #jack.roar #jackbar{border-color:rgba(244,241,228,.65)}
+body.golf #jack.roar #jackfill{background:linear-gradient(90deg,#35a14a,#fff3a8)}
+body.golf #jack.roar .lbl{color:#e9ffd0}
+body.park{background-image:url(art/park/bg.png)}
+body.park::before{background:radial-gradient(ellipse at 50% 45%,rgba(20,14,36,.38),rgba(10,8,24,.8))}
+body.park .title{background:linear-gradient(180deg,#fff,#ffd9a0 42%,#ff8a4c);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 3px 0 #6a2a12) drop-shadow(0 0 14px rgba(255,160,90,.55))}
+body.park .title small{-webkit-text-fill-color:#d6f5ff;color:#d6f5ff;letter-spacing:2px;font-size:17px}
+body.park #boardwrap{border-color:#ffb46a;box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 20px rgba(255,150,80,.4),inset 0 0 30px rgba(120,220,200,.12)}
+body.park .lv{background:linear-gradient(180deg,#ff9d5c,#e0602a);box-shadow:0 5px 0 #8a3410,inset 0 2px 0 rgba(255,255,255,.35)}
+body.park .lv.done{background:linear-gradient(180deg,#5cd6c8,#1f9a94);box-shadow:0 5px 0 #0f5a58,inset 0 2px 0 rgba(255,255,255,.35)}
+body.park #game-buddy{width:92px;height:92px;margin:0 -24px -4px 0}
+body.park #jack.roar #jackbar{border-color:rgba(255,180,106,.65)}
+body.park #jack.roar #jackfill{background:linear-gradient(90deg,#ff8a4c,#ffe9a8)}
+body.park #jack.roar .lbl{color:#ffe9d0}
+body.home{background-image:url(art/home/bg.png)}
+body.home::before{background:radial-gradient(ellipse at 50% 45%,rgba(30,12,20,.4),rgba(16,6,12,.82))}
+body.home .title{background:linear-gradient(180deg,#fff8ea,#ffc9d6 42%,#e8799c);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 3px 0 #6a2440) drop-shadow(0 0 14px rgba(255,170,190,.55))}
+body.home .title small{-webkit-text-fill-color:#ffe9c8;color:#ffe9c8;letter-spacing:1px;font-size:15px}
+body.home #boardwrap{border-color:#f3d9b0;box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 20px rgba(255,190,150,.4),inset 0 0 30px rgba(255,170,190,.12)}
+body.home .lv{background:linear-gradient(180deg,#8fd0c0,#3f9484);box-shadow:0 5px 0 #1f5a50,inset 0 2px 0 rgba(255,255,255,.35)}
+body.home .lv.done{background:linear-gradient(180deg,#f7b7c8,#d9708f);box-shadow:0 5px 0 #8a3350,inset 0 2px 0 rgba(255,255,255,.35)}
+body.home #game-maple{width:104px;height:104px;margin:-8px -6px -6px 0}
+body.home #game-buddy{width:96px;height:96px;margin:0 -22px -4px 0}
+body.home #map-buddy{width:108px;height:108px;margin:0 0 -6px -18px}
+body.home #jack.roar #jackbar{border-color:rgba(243,217,176,.65)}
+body.home #jack.roar #jackfill{background:linear-gradient(90deg,#e8799c,#ffe9a8)}
+body.home #jack.roar .lbl{color:#ffe9c8}
+body.golf .lv.cur,body.park .lv.cur,body.home .lv.cur{background:linear-gradient(180deg,#ffe066,#ffaa22);color:#4a2300;box-shadow:0 5px 0 #a35a00,0 0 18px rgba(255,210,80,.8)}
+body.golf .lv.lock,body.park .lv.lock,body.home .lv.lock{background:rgba(255,255,255,.08);box-shadow:none}
 .flyer{position:fixed;z-index:25;pointer-events:none;image-rendering:pixelated;filter:drop-shadow(0 0 8px #ffd34d)}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;z-index:50;background:#140a26}
 </style>
