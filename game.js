@@ -11,7 +11,7 @@ const $ = s => document.querySelector(s);
 const SAVE_KEY = 'maple-gem-dig-v1';
 const save = Object.assign(
   { unlocked: 1, stars: {}, best: {}, boost: { hammer: 3, shuffle: 2, paw: 2 }, sound: true, chests: 0, seenHowto: false, stage: 0, seenVegas: false,
-    seenDino: false, buddy: '', eggDay: '' },
+    seenDino: false, buddy: '', eggDay: '', seenGolf: false, seenPark: false, seenHome: false },
   JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'));
 const persist = () => localStorage.setItem(SAVE_KEY, JSON.stringify(save));
 
@@ -164,10 +164,85 @@ const DIG = [
 ];
 LEVELS.push(...DIG);
 
+/* ---- Stages 4-6: Maple's Golf Classic, Maple's Pet Park, Maple Grove ----
+   No new rules, only new clothes: each stage re-skins the tile layer, a blocker or two and the tap-to-fire meter
+   (see skin / txt / goal / under / call / runner in STAGES). Still append-only. */
+Object.assign(P, {
+  // golf
+  dogleg:  ['.11.....','.11.....','.11.....','.111....','..11111.','...1111.','........','........'],
+  rough:   ['11111111','11....11','1......1','1......1','1......1','1......1','11....11','11111111'],
+  bunkers: ['........','.22..22.','.22..22.','...11...','...11...','.22..22.','.22..22.','........'],
+  green:   ['..2222..','.2....2.','2..11..2','2.1111.2','2.1111.2','2..11..2','.2....2.','..2222..'],
+  // pets
+  paw:     ['.11..11.','.11..11.','1......1','1.1111.1','..1111..','.111111.','.111111.','..1..1..'],
+  dogbone: ['........','.1....1.','11....11','11111111','11111111','11....11','.1....1.','........'],
+  fish:    ['........','..111...','.11111.1','11211111','11111111','.11111.1','..111...','........'],
+  puddles: ['.11.....','.11...1.','.....121','......1.','.1......','121..22.','.1...22.','........'],
+  // home
+  glasses: ['........','........','111..111','1.1111.1','111..111','........','........','........'],
+  teacup:  ['........','.11111..','.1111111','.11111.1','.1111111','..111...','1111111.','........'],
+  bingo:   ['........','.211111.','.121111.','.112111.','.111211.','.111121.','.111112.','........'],
+});
+const GOLF = [
+  { m: 18, k: 5, g: [S(6000)], name: 'Tee Off' },
+  { m: 14, k: 5, g: [I], ice: 'dogleg', name: 'The Dogleg' },
+  { m: 20, k: 5, g: [B(2)], name: 'Sink It' },
+  { m: 16, k: 5, g: [C(0, 26), C(2, 26)], name: 'Flags & Bags' },
+  { m: 11, k: 5, g: [G(3)], name: 'Gopher Trouble' },
+  { time: 60, per: 450, k: 5, g: [S(10000)], name: 'Speed Golf' },
+  { m: 19, k: 5, g: [I], ice: 'rough', name: 'In the Rough' },
+  { m: 27, k: 5, g: [B(3), C(3, 24)], name: 'Birdie' },
+  { m: 18, k: 5, g: [I], ice: 'heart', name: 'Fore You ♥' },
+  { m: 30, k: 6, g: [S(7000)], name: 'Windy Day' },
+  { m: 18, k: 5, g: [G(4), I], ice: 'bunkers', name: 'Sand Trap' },
+  { m: 25, k: 5, g: [I, B(2)], ice: 'stripes', name: 'Fresh Cut' },
+  { time: 75, per: 450, k: 5, g: [G(4), S(12000)], name: 'Beat the Rain' },
+  { m: 25, k: 6, g: [C(1, 22), C(4, 22), C(5, 22)], name: 'The Back Nine' },
+  { m: 26, k: 5, g: [I, B(2), G(3)], ice: 'green', name: 'Hole in One' },
+];
+const PARK = [
+  { m: 18, k: 5, g: [S(6000)], name: 'Walkies' },
+  { m: 12, k: 5, g: [X(2)], name: "Where's Tiki?" },
+  { m: 17, k: 5, g: [I], ice: 'paw', name: 'Muddy Paws' },
+  { m: 20, k: 5, g: [B(2)], name: 'Fetch' },
+  { m: 15, k: 5, g: [A(8)], name: 'Bath Time' },
+  { m: 16, k: 5, g: [C(1, 26), C(4, 26)], name: "Cat's Choice" },
+  { time: 60, per: 450, k: 5, g: [S(10000)], name: 'Zoomies' },
+  { m: 18, k: 5, g: [I, X(2)], ice: 'dogbone', name: 'Buried Treasure' },
+  { m: 13, k: 5, g: [X(3, 2)], name: 'Gift Wrapped' },
+  { m: 18, k: 5, g: [I], ice: 'heart', name: 'Puppy Love ♥' },
+  { m: 25, k: 6, g: [C(0, 22), C(2, 22), C(5, 22)], name: "Dog's Dinner" },
+  { m: 25, k: 5, g: [A(8), B(2)], name: 'Bubble Trouble' },
+  { m: 20, k: 5, g: [I, A(6)], ice: 'fish', name: 'Splash!' },
+  { time: 75, per: 450, k: 5, g: [X(4), S(12000)], name: 'Hide & Seek' },
+  { m: 27, k: 5, g: [I, X(3, 2), B(2)], ice: 'puddles', name: 'Best in Show' },
+];
+const HOME = [
+  { m: 18, k: 5, g: [S(6000)], name: 'Welcome Tea' },
+  { m: 14, k: 5, g: [I], ice: 'glasses', name: 'Lost My Glasses' },
+  { m: 12, k: 5, g: [X(2)], name: 'Biscuit Tin' },
+  { m: 16, k: 5, g: [C(0, 26), C(2, 26)], name: 'Garden Club' },
+  { m: 15, k: 5, g: [A(8)], name: 'Whiskey Did It' },
+  { m: 20, k: 5, g: [I], ice: 'checker', name: 'Patchwork' },
+  { time: 60, per: 450, k: 5, g: [S(10000)], name: 'Dance Night' },
+  { m: 14, k: 5, g: [X(3, 2)], name: 'Secret Stash' },
+  { m: 18, k: 5, g: [I, C(1, 24)], ice: 'teacup', name: 'Tea at Three' },
+  { m: 18, k: 5, g: [I], ice: 'heart', name: 'Young at Heart ♥' },
+  { m: 30, k: 6, g: [S(7000)], name: 'Card Sharks' },
+  { m: 19, k: 5, g: [A(10), X(2)], name: 'Knit One, Purl One' },
+  { m: 26, k: 5, g: [I, A(6)], ice: 'frame', name: 'Family Photos' },
+  { time: 75, per: 450, k: 5, g: [X(4), S(12000)], name: 'Visiting Hours' },
+  { m: 22, k: 5, g: [I, X(3, 2), A(6)], ice: 'bingo', name: 'Full House' },
+];
+LEVELS.push(...GOLF, ...PARK, ...HOME);
+
 /* ---- stages ----
    Everything that differs between stages lives here, so a new stage is one more entry (plus its levels above).
    pc: the six piece images · per: points per move behind the star maths [5 colours, 6 colours] · tiles: what the
-   level pattern means (ice over pieces, bulbs or dirt under them) · meter: the bar above the board. */
+   level pattern means (ice over pieces, bulbs or dirt under them) · meter: the bar above the board.
+   Optional dress-up, so one engine wears many stages: skin: the engine's picture name → this stage's picture ·
+   under: how the dirt tiles look and sound · txt: banners and sounds · goal: intro-card sentences · runner: what
+   runs along a row when an egg opens · call: a tap-to-fire meter's label, icon and the shots it takes in turn. */
 const STAGES = [
   {
     id: 'cave', start: 0, n: 30, btn: ['💎', 'Crystal Cave'], title: "Maple's<br>Gem Dig<small>✦ no ads · no paywalls ✦</small>",
@@ -198,8 +273,77 @@ const STAGES = [
     helper: 'Sprout dug up', extra: '🦕', fail: 'Real digs take patience too. The bones are still down there.', tileGoal: 'Dig out all the dirt',
     seen: 'seenDino',
   },
+  {
+    id: 'golf', start: 84, n: GOLF.length, btn: ['⛳', 'Golf Classic'], title: "Maple's<br>Golf Classic<small>✦ with Tiki on the bag ✦</small>",
+    pc: ['gf0', 'gf1', 'gf2', 'gf3', 'gf4', 'gf5'], prism: 'gf_umbrella', scoreIcon: 'gf_card', tileIcon: 'gf_tuft',
+    per: [600, 330], tiles: 'dirt', meter: 'call', pets: ['maple', 'tiki'], mapHome: 'wag',
+    words: ['', '', 'Nice!', 'Great shot!', 'On the green!', 'Eagle!', 'Albatross!', 'TIKI MODE!'],
+    pieceWords: ['flags', 'caps', 'golf bags', 'trophies', 'clubs', 'golf carts'],
+    bonus: "Maple's Bonus Round!", done: 'Fifteen holes and not one lost ball (Tiki found them all). Maple says you are the club champion. ♥',
+    helper: 'Tiki fetched you', extra: '⛳', fail: 'Even the pros land in the rough. Tee it up again.', tileGoal: 'Tidy up all the rough and sand',
+    seen: 'seenGolf',
+    skin: { dirt: 'gf_rough', rock: 'gf_sand', bone: 'gf_ball', egg: 'gf_mound', egg2: 'gf_gopher' },
+    under: { edge: ['rgba(18,70,30,.9)', 'rgba(150,112,52,.9)'], clear: ['rgba(170,240,140,.22)'], shard: ['#e8cf8a', '#5fbf5a'], snd: 'snip' },
+    txt: { boneOne: 'In the hole!', boneAll: 'Every putt sunk!', eggOne: 'Shoo!', eggAll: 'Course is clear!', eggSnd: 'yip' },
+    goal: {
+      bone: n => `Sink ${n} golf ball${n > 1 ? 's' : ''} in the bottom row`,
+      egg: n => `Shoo ${n} gopher${n > 1 ? 's' : ''} (two knocks each)`,
+    },
+    runner: { img: 'gf_run' },
+    call: { lbl: 'Swing', ready: 'Tap to swing!', img: 'gf_ball', shots: [
+      { pow: 'tail', shout: 'Long Drive!', img: 'gf_ball', scale: .55, snd: 'swing' },
+      { pow: 'stomp', shout: 'Bunker Blast!', img: 'gf_ball', scale: .55, snd: 'swing' },
+      { pow: 'swoop', shout: 'Birdie!', img: 'gf_bird', scale: .8, snd: 'chirp' },
+    ] },
+  },
+  {
+    id: 'park', start: 99, n: PARK.length, btn: ['🐾', 'Pet Park'], title: "Maple's<br>Pet Park<small>✦ starring the whole crew ✦</small>",
+    pc: ['pk0', 'pk1', 'pk2', 'pk3', 'pk4', 'pk5'], prism: 'pk_frisbee', scoreIcon: 'pk_ribbon', tileIcon: 'pk_print',
+    per: [600, 330], tiles: 'dirt', meter: 'call', pets: ['maple', 'whiskey'], mapHome: 'wag',
+    words: ['', '', 'Nice!', 'Good dog!', 'Purrfect!', 'Pawsome!', 'Best in show!', 'WHOLE CREW!'],
+    pieceWords: ['food bowls', 'fish', 'tennis balls', 'rubber ducks', 'toy mice', 'paw prints'],
+    bonus: "The Crew's Bonus Zoomies!", done: 'Paws wiped, bubbles popped, Tiki found every single time. Maple, Whiskey and Tiki think you are the best human in the whole park. ♥',
+    helper: 'Maple fetched you', extra: '🐾', fail: 'Shake it off and go again. The crew is right behind you.', tileGoal: 'Clean up every muddy paw print',
+    seen: 'seenPark',
+    skin: { dirt: 'pk_mud', rock: 'pk_mud2', amber: 'pk_bubble', amberblob: 'pk_bubble' },
+    under: { edge: ['rgba(70,40,18,.9)', 'rgba(40,22,8,.95)'], clear: ['rgba(190,235,255,.22)'], shard: ['#6b4423', '#9a6a3a'], snd: 'dig' },
+    txt: { amberStuck: "It's in a bubble!", amberSnd: 'pop', amberCol: '#9fe3ff', amberA: .9 },
+    goal: { amber: n => `Pop ${n} bubble${n > 1 ? 's' : ''}` },
+    call: { lbl: 'Treats', ready: 'Treat time!', img: 'pk_treat', shots: [
+      { pow: 'charge', shout: 'Zoomies!', frames: ['whiskey', 'run'], snd: 'meow' },
+      { pow: 'stomp', shout: 'Dig, Maple, Dig!', frames: ['maple', 'jump'], snd: 'yip' },
+      { pow: 'pack', shout: 'Tiki Pounce!', frames: ['tiki', 'run'], scale: 1.2, snd: 'meow' },
+    ] },
+  },
+  {
+    id: 'home', start: 114, n: HOME.length, btn: ['☕', 'Maple Grove'], title: 'Maple<br>Grove<small>✦ the liveliest retirement home ✦</small>',
+    pc: ['hm0', 'hm1', 'hm2', 'hm3', 'hm4', 'hm5'], prism: 'hm_ball', scoreIcon: 'hm_star', tileIcon: 'hm_quilt',
+    per: [600, 330], tiles: 'dirt', meter: 'call', pets: ['whiskey', 'maple'], mapHome: 'idle',
+    words: ['', '', 'Nice!', 'Lovely!', 'Marvellous!', 'Spiffing!', "Bee's knees!", 'BINGO MODE!'],
+    pieceWords: ['roses', 'teacups', 'pot plants', 'biscuits', 'balls of yarn', 'spectacles'],
+    bonus: 'Bonus Bingo Round!', done: 'Quilts stitched, tins emptied, bingo won fair and square. Everyone at Maple Grove is saving you a seat (Whiskey is sitting in it). ♥',
+    helper: 'Whiskey nudged over', extra: '☕', fail: 'No rush here. Put the kettle on and have another go.', tileGoal: 'Stitch every patch of the quilt',
+    seen: 'seenHome',
+    skin: { dirt: 'hm_patch', rock: 'hm_patch2', box: 'hm_tin', tikibox: 'hm_tin2', amber: 'hm_tangle', amberblob: 'hm_tangle' },
+    under: { edge: ['rgba(120,90,60,.9)', 'rgba(90,60,40,.95)'], clear: ['rgba(255,170,190,.5)', 'rgba(150,210,255,.5)', 'rgba(255,225,130,.5)', 'rgba(170,230,170,.5)', 'rgba(205,170,255,.5)'], shard: ['#f3e6c8', '#ffd7e6'], snd: 'snip' },
+    txt: { boxOne: 'Biscuits!', boxAll: 'Every tin is open!', boxFly: 'hm3', boxSnd: 'bone', amberStuck: 'All tangled up!', amberSnd: 'snip', amberCol: '#c9a0ff', amberA: .95 },
+    goal: {
+      box: (n, hp) => `Open ${n} biscuit tin${n > 1 ? 's' : ''}${hp > 1 ? ' (two knocks each)' : ''}`,
+      amber: n => `Untangle ${n} piece${n > 1 ? 's' : ''} of yarn`,
+    },
+    call: { lbl: 'Bingo', ready: 'Shout BINGO!', img: 'hm_card', shots: [
+      { pow: 'charge', shout: 'Two Lines!', img: 'hm_ball', scale: .55, snd: 'bingo' },
+      { pow: 'swoop', shout: 'Four Corners!', img: 'hm_ball', scale: .6, snd: 'bingo' },
+      { pow: 'roar', shout: 'FULL HOUSE!', img: 'hm_ball', scale: .5, snd: 'bingo' },
+    ] },
+  },
 ];
 const stageOf = i => { let s = 0; for (let k = 1; k < STAGES.length; k++) if (i >= STAGES[k].start) s = k; return s; };
+// Stage skins: the engine asks for 'dirt', 'egg', 'bone'... and a stage may answer with its own picture or words.
+const skOf = (T, k) => (T.skin && T.skin[k]) || k;
+const sk = k => skOf(LV.T, k);
+const say = (k, def) => (LV.T.txt && LV.T.txt[k]) || def;
+const callMeter = () => !!LV && (LV.T.meter === 'roar' || LV.T.meter === 'call');   // a meter she taps when it is full
 const SECS_PER_MOVE = 2.2;   // how the bot (and the star maths) converts a timed level into moves
 function levelDef(i) {
   const L = LEVELS[i], st = stageOf(i), T = STAGES[st];
@@ -345,6 +489,11 @@ const SPR = {
 };
 const DINO_ART = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd5b', 'meteor', 'egg', 'egg2', 'skull', 'amber', 'amberblob', 'trophy', 'mound', 'giftegg', 'dirt', 'rock',
   'f_tooth', 'f_claw', 'f_print', 'f_bone', 'f_skull', 'f_ribs', 'f_tail', 'f_rex', 'journal', 'star', 'hatch'];
+const STAGE_ART = {
+  golf: ['gf0', 'gf1', 'gf2', 'gf3', 'gf4', 'gf5', 'gf_umbrella', 'gf_card', 'gf_rough', 'gf_sand', 'gf_tuft', 'gf_ball', 'gf_mound', 'gf_gopher', 'gf_run', 'gf_bird'],
+  park: ['pk0', 'pk1', 'pk2', 'pk3', 'pk4', 'pk5', 'pk_frisbee', 'pk_ribbon', 'pk_mud', 'pk_mud2', 'pk_print', 'pk_bubble', 'pk_treat'],
+  home: ['hm0', 'hm1', 'hm2', 'hm3', 'hm4', 'hm5', 'hm_ball', 'hm_star', 'hm_patch', 'hm_patch2', 'hm_quilt', 'hm_tin', 'hm_tin2', 'hm_tangle', 'hm_card'],
+};
 const FR = {};   // FR[who][anim] = [frames]
 let BULB_SRC = '';
 function loadImg(src) {
@@ -358,6 +507,7 @@ async function loadAll() {
   get('tikibox', 'art/tiki/box.png');
   for (const n of DINO_ART) get(n, 'art/dino/' + n + '.png');
   for (const d of DINOS) get('p_' + d.id, 'art/dino/p_' + d.id + '.png');
+  for (const id in STAGE_ART) for (const n of STAGE_ART[id]) get(n, `art/${id}/${n}.png`);
   for (const who in SPR) {
     FR[who] = {};
     for (const anim in SPR[who]) {
@@ -443,6 +593,11 @@ const sfx = {
   fossil() { [0, 7, 12, 16].forEach((n, i) => tone(note(392, n), .22, 'triangle', .09, i * .07)); },
   amber() { tone(1400, .1, 'triangle', .06, 0, .6); tone(2100, .16, 'sine', .05, .04); },
   yip() { tone(700, .07, 'square', .05, 0, 1.4); tone(900, .1, 'square', .05, .09, .8); },
+  // --- Golf / Pet Park / Maple Grove ---
+  swing() { noise(.1, .1); tone(1400, .16, 'sine', .08, .06, .35); },
+  pop() { tone(900, .06, 'sine', .08, 0, 1.8); tone(1600, .05, 'triangle', .04, .05); },
+  snip() { noise(.05, .07); tone(1100, .04, 'triangle', .04, 0, .7); },
+  bingo() { [0, 4, 7, 12, 7, 12].forEach((n, i) => tone(note(659, n), .16, 'triangle', .09, i * .08)); },
   // Every dinosaur gets a voice sized to its body: 0 chirps, 3 rumbles.
   roar(sz = 2) {
     if (sz <= 0) { tone(1100, .09, 'sawtooth', .05, 0, 1.5); tone(1500, .14, 'sawtooth', .05, .08, .6); return; }
@@ -483,7 +638,7 @@ let dying = [], fx = [], shake = 0;
 // Vegas state: timed levels and the jackpot meter
 let timed = false, timeLeft = 0, timeStarted = false, paused = false, jackMeter = 0, jackNeed = 50;
 // Dino state: buried fossils, and the rows waiting for a hatchling to run along them. (The Roar meter reuses the jackpot meter.)
-let fossils = [], hatchQ = [];
+let fossils = [], hatchQ = [], shotN = 0;   // shotN: how many times this level's call meter has fired
 
 const mkCell = (c, kind = 'gem', sp = null) => ({ id: ++cellId, c, kind, sp, x: 0, y: 0, s: 1, a: 1, fired: false, hp: 1 });
 const randColor = () => Math.floor(Math.random() * LV.colors);
@@ -495,8 +650,8 @@ function startLevel(i) {
   LV = levelDef(i);
   moves = LV.moves; score = 0; cascade = 1; extraUsed = false; ended = false; busy = false;
   selected = null; boosterMode = null; hint = null; dying = []; fx = []; tweens.length = 0;
-  timed = !!LV.time; timeLeft = LV.time; timeStarted = false; paused = false; jackMeter = 0; jackNeed = LV.T.meter === 'roar' ? ROAR_NEED : 50;
-  fossils = []; hatchQ = [];
+  timed = !!LV.time; timeLeft = LV.time; timeStarted = false; paused = false; jackMeter = 0; jackNeed = callMeter() ? ROAR_NEED : 50;
+  fossils = []; hatchQ = []; shotN = 0;
   setStage(LV.stage, LV.dino ? LV.dino.era : 0);
   goals = LV.goals.map(g => ({ ...g, have: 0 }));
   ice =[...Array(ROWS)].map((_, r) => [...Array(COLS)].map((_, c) => LV.ice ? (+LV.ice[r][c] || 0) : 0));
@@ -625,7 +780,7 @@ async function trySwap(r1, c1, r2, c2) {
   if (!a || !b || busy || ended) return;
   if (a.amber || b.amber) {   // stuck in amber: it can be matched, but not moved
     const k = a.amber ? a : b; selected = null; sfx.bad(); k.s = 1.18; tween(k, { s: 1 }, 220, E.back);
-    bigText('Stuck in amber!'); lastInput = performance.now(); return;
+    bigText(say('amberStuck', 'Stuck in amber!')); lastInput = performance.now(); return;
   }
   busy = true; selected = null; hint = null; sfx.swap();
   timeStarted = true;
@@ -721,7 +876,7 @@ async function clearSet(seeds, creates = [], from = null, gentle = false) {
   if (!gentle) for (const k of boxHit) hitBox(Math.floor(k / COLS), k % COLS);   // gentle: a hatchling runs past other eggs without waking them
   for (const k of amberHit) freeAmber(Math.floor(k / COLS), k % COLS);
   if (LV.T.meter && !ended) jackMeter += set.size;
-  if (LV.T.meter === 'roar') jackMeter = Math.min(jackMeter, jackNeed);   // a roar waits until she calls it
+  if (callMeter()) jackMeter = Math.min(jackMeter, jackNeed);   // a roar waits until she calls it
   for (const [cell, r, c] of fired) fireFx(cell.sp, r, c, GEM_COL[cell.c] || '#fff');
   if (fired.length) { shake = Math.min(18, 7 + fired.length * 3); sfx.blast(); if (fired.length >= 2 || fired.some(f => f[0].sp === 'prism')) maple.game.play('jump'); }
   const anims = [];
@@ -768,11 +923,11 @@ function hitBox(r, c) {
   }
   grid[r][c] = null; score += 400;
   if (g) g.have++;
-  sfx.meow(); ring(c, r, 1.5, '#ffd34d', 500); floatText('+400', c, r, '#ffe14d');
+  sfx[say('boxSnd', 'meow')](); ring(c, r, 1.5, '#ffd34d', 500); floatText('+400', c, r, '#ffe14d');
   dying.push(cell); tween(cell, { s: 1.6, a: 0 }, 300, E.out);
   if (g) {
-    flyToGoal(cell, c, r, g, 'art/tiki/south.png');
-    bigText(g.have >= g.n ? 'Tiki is free!' : `Found Tiki! ${g.have} of ${g.n}`, true);
+    flyToGoal(cell, c, r, g, LV.T.txt && LV.T.txt.boxFly ? SRC[LV.T.txt.boxFly] : 'art/tiki/south.png');
+    bigText(g.have >= g.n ? say('boxAll', 'Tiki is free!') : `${say('boxOne', 'Found Tiki!')} ${g.have} of ${g.n}`, true);
   }
   maple.game.play('jump');
 }
@@ -784,16 +939,16 @@ function hitEgg(cell, r, c) {
   if (cell.hp > 0) { sfx.crack(); cell.s = 1.3; tween(cell, { s: 1 }, 260, E.back); burst({ x: c, y: r, kind: 'gem', c: 3 }); return; }
   grid[r][c] = null; score += 300; hatchQ.push(r);
   if (g) g.have++;
-  sfx.hatch(); ring(c, r, 1.5, '#fff3c4', 500); floatText('+300', c, r, '#ffe14d');
+  sfx[say('eggSnd', 'hatch')](); ring(c, r, 1.5, '#fff3c4', 500); floatText('+300', c, r, '#ffe14d');
   dying.push(cell); tween(cell, { s: 1.6, a: 0 }, 300, E.out);
-  if (g) { bumpGoal(g); bigText(g.have >= g.n ? 'All hatched!' : 'Hatched!', true); }
+  if (g) { bumpGoal(g); bigText(g.have >= g.n ? say('eggAll', 'All hatched!') : say('eggOne', 'Hatched!'), true); }
   maple.game.play('jump');
 }
 function freeAmber(r, c) {
   const cell = grid[r][c], g = goalOf('amber');
   if (!cell || !cell.amber) return;
   cell.amber = false; score += 100; cell.s = 1.35; tween(cell, { s: 1 }, 260, E.back);
-  sfx.amber(); ring(c, r, .9, '#ffb93b', 350); burst({ x: c, y: r, kind: 'gem', c: 3 });
+  sfx[say('amberSnd', 'amber')](); ring(c, r, .9, say('amberCol', '#ffb93b'), 350); burst({ x: c, y: r, kind: 'gem', c: 3 });
   if (g && g.have < g.n) { g.have++; bumpGoal(g); }
 }
 // A tile of dirt has just been dug away: is a whole fossil showing now?
@@ -819,7 +974,7 @@ function onCleared(cell, r, c) {
     ice[r][c]--;
     const tl = LV.T.tiles;
     if (tl === 'bulb') { if (ice[r][c] === 0) { sfx.light(); ring(c, r, .9, '#ffd34d', 350); } else sfx.tap(); }
-    else if (tl === 'dirt') { sfx.dig(); shards(c, r, ice[r][c] ? '#8d8792' : '#a8713c'); }
+    else if (tl === 'dirt') { const U = LV.T.under || {}; sfx[U.snd || 'dig'](); shards(c, r, (U.shard || ['#8d8792', '#a8713c'])[ice[r][c] ? 0 : 1]); }
     else { sfx.ice(); shards(c, r); }
     if (ice[r][c] === 0) { const g = goalOf('ice'); if (g) { g.have++; bumpGoal(g); } if (tl === 'dirt') checkFossils(r, c); }
   }
@@ -900,8 +1055,8 @@ async function collectBones() {
       any = true; grid[ROWS - 1][c] = null; bg.have++; sfx.bone();
       score += 500; floatText('+500', c, ROWS - 1, '#ffe14d');
       ring(c, ROWS - 1, 1.5, '#ffd34d', 500);
-      flyToGoal(cell, c, ROWS - 1, bg);
-      bigText(bg.have >= bg.n ? 'All bones found!' : `Golden bone! ${bg.have} of ${bg.n}`, true);
+      flyToGoal(cell, c, ROWS - 1, bg, SRC[sk('bone')]);
+      bigText(bg.have >= bg.n ? say('boneAll', 'All bones found!') : `${say('boneOne', 'Golden bone!')} ${bg.have} of ${bg.n}`, true);
       maple.game.play('jump');
     }
   }
@@ -930,7 +1085,7 @@ async function hatchRuns() {
   if (!hatchQ.length) return false;
   const rows = [...new Set(hatchQ.splice(0))];
   for (const r of rows) {
-    sfx.chirp(); cameo(SPROUT, -1, r + .5, COLS + 1, r + .5, 650, 1.5, 5);
+    sfx.chirp(); cameo(LV.T.runner || SPROUT, -1, r + .5, COLS + 1, r + .5, 650, 1.5, 5);
     const cells = []; for (let c = 0; c < COLS; c++) cells.push([r, c]);
     await wait(160);
     await clearSet(cells, [], [r, -1], true);
@@ -1058,11 +1213,11 @@ function slotShow(pick) {
 function updateJack() {
   const el = $('#jack'), kind = LV && LV.T.meter; el.hidden = !kind;
   if (el.hidden) return;
-  const p = Math.min(1, jackMeter / jackNeed), roar = kind === 'roar', ready = roar && p >= 1 && !ended;
+  const p = Math.min(1, jackMeter / jackNeed), roar = callMeter(), K = LV.T.call, ready = roar && p >= 1 && !ended;
   $('#jackfill').style.width = (p * 100) + '%';
   el.classList.toggle('hot', p >= .8 && !roar); el.classList.toggle('roar', roar); el.classList.toggle('ready', ready);
-  $('#jacklbl').textContent = roar ? (ready ? 'Tap to roar!' : 'Roar') : 'Jackpot';
-  const src = roar ? (buddyDino() === SPROUT ? 'art/sprout/fidle_0.png' : SRC['p_' + buddyDino().id]) : SRC.seven, im = $('#jackimg');
+  $('#jacklbl').textContent = K ? (ready ? K.ready : K.lbl) : roar ? (ready ? 'Tap to roar!' : 'Roar') : 'Jackpot';
+  const src = K ? SRC[K.img] : roar ? (buddyDino() === SPROUT ? 'art/sprout/fidle_0.png' : SRC['p_' + buddyDino().id]) : SRC.seven, im = $('#jackimg');
   if (im.getAttribute('src') !== src) im.src = src;
 }
 
@@ -1072,8 +1227,8 @@ function updateJack() {
 const ROAR_NEED = 55;
 function cameo(d, x1, y1, x2, y2, ms, size = 2.6, hops = 4, pulse = false) {
   if (SPD < 1) return;
-  const frames = d.id === 'sprout' ? FR.sprout.run : null;
-  fx.push({ t: 'dino', img: IMG['p_' + d.id], frames, x1, y1, x2, y2, size, hops, pulse, flip: x2 < x1, life: 0, max: ms / 1000 });
+  const frames = d.frames ? FR[d.frames[0]][d.frames[1]] : d.id === 'sprout' ? FR.sprout.run : null;
+  fx.push({ t: 'dino', img: IMG[d.img] || IMG['p_' + d.id], frames, x1, y1, x2, y2, size: size * (d.scale || 1), hops, pulse, flip: x2 < x1, life: 0, max: ms / 1000 });
 }
 // How much a spot matters to the goals: powers aim themselves where they help most.
 function goalWorth(r, c) {
@@ -1083,10 +1238,11 @@ function goalWorth(r, c) {
 }
 function bestOf(list, worth) { let best = list[0], bv = -1; for (const o of list) { const v = worth(o) + Math.random(); if (v > bv) { bv = v; best = o; } } return best; }
 async function fireRoar() {
-  if (!LV || LV.T.meter !== 'roar' || busy || ended || jackMeter < jackNeed) return;
+  if (!callMeter() || busy || ended || jackMeter < jackNeed) return;
   busy = true; paused = true; hint = null; selected = null; boosterMode = null; timeStarted = true;
   jackMeter -= jackNeed; jackNeed += 15; updateJack(); updateBoosters();
-  await dinoPower(buddyDino());
+  const K = LV.T.call;   // Dino Dig sends the journal buddy; the newer stages take their shots in turn
+  await dinoPower(K ? K.shots[shotN++ % K.shots.length] : buddyDino());
   paused = false;
   await settle();
   busy = false; lastInput = performance.now();
@@ -1094,7 +1250,7 @@ async function fireRoar() {
 }
 async function dinoPower(d) {
   cascade = 1;
-  bigText(POWERS[d.pow][0], true); sfx.roar(d.sz); maple.game.play('wag');
+  bigText(d.shout || POWERS[d.pow][0], true); if (d.snd) sfx[d.snd](); else sfx.roar(d.sz); maple.game.play('wag');
   const sum = cells => cells.reduce((s, [r, c]) => s + goalWorth(r, c), 0);
   const row = r => [...Array(COLS)].map((_, c) => [r, c]), col = c => [...Array(ROWS)].map((_, r) => [r, c]);
   const box = (r, c) => { const o = []; for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) o.push([r + dr, c + dc]); return o; };
@@ -1405,18 +1561,19 @@ function drawLights(t, S) {
 // A fossil shows through wherever its dirt is gone, and lifts out once every tile of it is clear.
 function drawDirt(t, S) {
   if (!LV.ice) return;
+  const U = LV.T.under || {};
   ctx.imageSmoothingEnabled = false;
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     if (!(+LV.ice[r][c])) continue;
     const x = c * S + 1.5 * dpr, y = r * S + 1.5 * dpr, w = S - 3 * dpr, v = ice[r][c];
     if (v > 0) {
-      const img = v === 2 ? IMG.rock : IMG.dirt;
+      const img = v === 2 ? IMG[sk('rock')] : IMG[sk('dirt')];
       ctx.save(); rr(x, y, w, w, S * .18); ctx.clip();
       if (img) ctx.drawImage(img, x, y, w, w); else { ctx.fillStyle = v === 2 ? '#6d6772' : '#7a4f2a'; ctx.fillRect(x, y, w, w); }
       ctx.restore();
-      ctx.strokeStyle = v === 2 ? 'rgba(210,205,220,.75)' : 'rgba(60,32,12,.9)'; ctx.lineWidth = 2 * dpr; rr(x, y, w, w, S * .18); ctx.stroke();
+      ctx.strokeStyle = U.edge ? U.edge[v - 1] : v === 2 ? 'rgba(210,205,220,.75)' : 'rgba(60,32,12,.9)'; ctx.lineWidth = 2 * dpr; rr(x, y, w, w, S * .18); ctx.stroke();
     } else {
-      ctx.fillStyle = 'rgba(255,224,160,.2)'; rr(x, y, w, w, S * .18); ctx.fill();
+      ctx.fillStyle = U.clear ? U.clear[(r * 3 + c) % U.clear.length] : 'rgba(255,224,160,.2)'; rr(x, y, w, w, S * .18); ctx.fill();
     }
   }
   for (const f of fossils) {
@@ -1455,7 +1612,7 @@ function drawCell(k, t, S, isHint) {
     g.addColorStop(0, `hsla(${hue},100%,75%,.9)`); g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g; ctx.fillRect(cx - S * .7, cy - S * .7, S * 1.4, S * 1.4);
   }
-  const img = k.kind === 'bone' ? IMG.bone : k.kind === 'box' ? (k.hp > 1 ? IMG.box : IMG.tikibox) : k.kind === 'egg' ? (k.hp > 1 ? IMG.egg : IMG.egg2)
+  const img = k.kind === 'bone' ? IMG[sk('bone')] : k.kind === 'box' ? IMG[sk(k.hp > 1 ? 'box' : 'tikibox')] : k.kind === 'egg' ? IMG[sk(k.hp > 1 ? 'egg' : 'egg2')]
     : k.sp === 'prism' ? IMG[LV.T.prism] : IMG[LV.pc[k.c]];
   if (k.sp === 'prism') {
     ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.sin(t / 300) * .25);
@@ -1463,13 +1620,13 @@ function drawCell(k, t, S, isHint) {
     ctx.restore();
   } else if (k.kind !== 'gem') {
     const bob = Math.sin(t / 250 + k.id) * S * .04;
-    const z = k.kind === 'box' && k.hp <= 1 ? size * 1.7 : size;   // Tiki's own sprite is small inside its frame
+    const z = k.kind === 'box' && k.hp <= 1 && sk('tikibox') === 'tikibox' ? size * 1.7 : size;   // Tiki's own sprite is small inside its frame
     if (img) ctx.drawImage(img, cx - z / 2, cy - z / 2 + bob - (z - size) * .12, z, z);
   } else if (img) ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
   else { ctx.fillStyle = GEM_COL[k.c] || '#fff'; ctx.beginPath(); ctx.arc(cx, cy, size * .35, 0, 7); ctx.fill(); }
   if (k.amber) {   // a blob of amber over the piece, with a slow glint
-    const a = Math.max(0, k.a), z = size * 1.08;
-    ctx.globalAlpha = a * .5; if (IMG.amberblob) ctx.drawImage(IMG.amberblob, cx - z / 2, cy - z / 2, z, z);
+    const a = Math.max(0, k.a), z = size * 1.08, blob = IMG[sk('amberblob')];
+    ctx.globalAlpha = a * say('amberA', .5); if (blob) ctx.drawImage(blob, cx - z / 2, cy - z / 2, z, z);
     ctx.globalAlpha = a * (.5 + Math.sin(t / 300 + k.id) * .25); ctx.strokeStyle = '#ffe9a8'; ctx.lineWidth = 2 * dpr;
     ctx.beginPath(); ctx.arc(cx, cy, S * .4 * sc, -2.4, -1.2); ctx.stroke();
     ctx.globalAlpha = a;
@@ -1622,7 +1779,7 @@ function petTap(view) {
 $('#map-maple').onclick = () => petTap(maple.map);
 $('#map-buddy').onclick = () => petTap(maple.mapBuddy);
 $('#game-buddy').onclick = () => petTap(maple.buddy);
-$('#game-maple').onclick = () => { if (LV && LV.T.meter === 'roar' && jackMeter >= jackNeed && !busy && !ended) { ac(); fireRoar(); } else { const l = maple.game.link; maple.game.link = null; petTap(maple.game); maple.game.link = l; } };
+$('#game-maple').onclick = () => { if (callMeter() && jackMeter >= jackNeed && !busy && !ended) { ac(); fireRoar(); } else { const l = maple.game.link; maple.game.link = null; petTap(maple.game); maple.game.link = l; } };
 $('#jack').onclick = () => { ac(); fireRoar(); };
 
 /* ================= input ================= */
@@ -1678,12 +1835,12 @@ $('#back').onclick = () => {
 function goalIcon(g, L = LV) {
   const T = L.T;
   if (g.t === 'color') return SRC[L.pc[g.c]];
-  if (g.t === 'bone') return SRC.bone;
-  if (g.t === 'box') return g.hp > 1 ? SRC.box : SRC.tikibox;
+  if (g.t === 'bone') return SRC[skOf(T, 'bone')];
+  if (g.t === 'box') return SRC[skOf(T, g.hp > 1 ? 'box' : 'tikibox')];
   if (g.t === 'ice') return SRC[T.tileIcon];
   if (g.t === 'fossil') return SRC.skull;
-  if (g.t === 'egg') return SRC.egg;
-  if (g.t === 'amber') return SRC.amber;
+  if (g.t === 'egg') return SRC[skOf(T, 'egg')];
+  if (g.t === 'amber') return SRC[skOf(T, 'amber')];
   return SRC[T.scoreIcon];
 }
 const COUNTED = { bone: 1, box: 1, fossil: 1, egg: 1, amber: 1 };   // goals shown as "2/5" rather than a countdown
@@ -1820,11 +1977,42 @@ function howtoDino(after) {
     <div><span class="ic"><img src="art/dino/meteor.png"></span>Blasters, bombs and boosters work the same. The meteor is the Dino Dig prism.</div>
   </div><div class="btns"><button class="btn" data-a="ok">Let's dig!</button></div>`, { ok: after || (() => { }) });
 }
-const HOWTO = { cave: howto, vegas: howtoVegas, dino: howtoDino };
+function howtoGolf(after) {
+  modal(`<h2>Golf Classic rules</h2><div class="howto">
+    <div><span class="ic"><img src="art/golf/gf_tuft.png"></span><span><b>Rough and sand:</b> match on top of long grass to trim it. Sandy bunkers take two. Tidy the whole course.</span></div>
+    <div><span class="ic"><img src="art/golf/gf_ball.png"></span><span><b>Golf balls:</b> clear the pieces underneath to roll a ball down to the bottom row. That's a putt sunk.</span></div>
+    <div><span class="ic"><img src="art/golf/gf_mound.png"></span><span><b>Gophers:</b> match right beside a gopher hill, twice. The gopher scampers off and clears its whole row on the way.</span></div>
+    <div><span class="ic"><img src="art/maple/idle_0.png"></span><span><b>Swing meter:</b> clearing pieces fills it. When it's full, tap it (or Maple) for her next shot: a long drive, a bunker blast, then a birdie.</span></div>
+    <div><span class="ic"><img src="art/vegas/clock.png"></span><span><b>Speed Golf:</b> no move limit, just a clock.</span></div>
+    <div><span class="ic"><img src="art/golf/gf_umbrella.png"></span>Blasters, bombs and boosters work the same. The golf umbrella is the prism here.</div>
+  </div><div class="btns"><button class="btn" data-a="ok">Tee off!</button></div>`, { ok: after || (() => { }) });
+}
+function howtoPark(after) {
+  modal(`<h2>Pet Park rules</h2><div class="howto">
+    <div><span class="ic"><img src="art/park/pk_print.png"></span><span><b>Muddy paws:</b> match on top of a muddy tile to clean it. Deep puddles take two.</span></div>
+    <div><span class="ic"><img src="art/tiki/box.png"></span><span><b>Tiki's boxes:</b> she is hiding again. Match right next to a box to let her out. Ribbons take two.</span></div>
+    <div><span class="ic"><img src="art/bone.png"></span><span><b>Golden bones:</b> drop them to the bottom row, just like in the Crystal Cave.</span></div>
+    <div><span class="ic"><img src="art/park/pk_bubble.png"></span><span><b>Bubbles:</b> a piece in a bubble can't be moved. Match it where it floats to pop it.</span></div>
+    <div><span class="ic"><img src="art/park/pk_treat.png"></span><span><b>Treat meter:</b> clearing pieces fills it. When it's full, tap it (or Maple) and the crew pitches in: Whiskey's zoomies, Maple's digging, then Tiki's pounce.</span></div>
+    <div><span class="ic"><img src="art/park/pk_frisbee.png"></span>Blasters, bombs and boosters work the same. The rainbow frisbee is the prism here.</div>
+  </div><div class="btns"><button class="btn" data-a="ok">Walkies!</button></div>`, { ok: after || (() => { }) });
+}
+function howtoHome(after) {
+  modal(`<h2>Maple Grove rules</h2><div class="howto">
+    <div><span class="ic"><img src="art/home/hm_quilt.png"></span><span><b>The quilt:</b> match on top of a bare patch to stitch it in. Knotted patches take two. Finish the whole quilt.</span></div>
+    <div><span class="ic"><img src="art/home/hm_tin.png"></span><span><b>Biscuit tins:</b> match right next to a tin to pop the lid. Tins tied with string take two.</span></div>
+    <div><span class="ic"><img src="art/home/hm_tangle.png"></span><span><b>Whiskey's yarn:</b> a tangled piece can't be moved. Match it where it sits to untangle it.</span></div>
+    <div><span class="ic"><img src="art/home/hm_card.png"></span><span><b>Bingo meter:</b> clearing pieces fills it. When it's full, tap it (or Whiskey) and shout BINGO: two lines, four corners, then a full house.</span></div>
+    <div><span class="ic"><img src="art/vegas/clock.png"></span><span><b>Dance Night:</b> no move limit, just a clock.</span></div>
+    <div><span class="ic"><img src="art/home/hm_ball.png"></span>Blasters, bombs and boosters work the same. The lucky bingo ball is the prism here.</div>
+  </div><div class="btns"><button class="btn" data-a="ok">Eyes down!</button></div>`, { ok: after || (() => { }) });
+}
+const HOWTO = { cave: howto, vegas: howtoVegas, dino: howtoDino, golf: howtoGolf, park: howtoPark, home: howtoHome };
 function intro(i) {
   const L = levelDef(i), T = L.T, d = L.dino, known = d && hasDino(d), plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
   const chips = L.goals.map(g => `<div class="goal box"><img src="${goalIcon(g, L)}"><span>${g.t === 'score' ? g.n.toLocaleString() : g.t === 'ice' ? 'all' : g.n}</span></div>`).join('');
-  const words = L.goals.map(g => g.t === 'score' ? `Score ${g.n.toLocaleString()}`
+  const words = L.goals.map(g => T.goal && T.goal[g.t] ? T.goal[g.t](g.n, g.hp)
+    : g.t === 'score' ? `Score ${g.n.toLocaleString()}`
     : g.t === 'color' ? `Collect ${g.n} ${L.words[g.c]}`
     : g.t === 'bone' ? `Bring ${g.n} golden bone${g.n > 1 ? 's' : ''} down to the bottom row`
     : g.t === 'box' ? `Let Tiki out of ${g.n} box${g.n > 1 ? 'es' : ''}${g.hp > 1 ? ' (two knocks each)' : ''}`
@@ -1923,5 +2111,5 @@ window.__gem = {
   LEVELS, STAGES, forceJack: id => { forceJack = id; jackMeter = jackNeed; }, jackpots, showMap, slotShow, JACK,
   // Dino Dig
   get fossils() { return fossils; }, fireRoar, fillRoar: () => { jackMeter = jackNeed; updateJack(); }, dinoPower, DINOS, DINO, levelDef, showDex, dexCard, discover, intro, persist,
-  useBoosterAt, setBooster: k => { boosterMode = k; },
+  useBoosterAt, setBooster: k => { boosterMode = k; }, get shotN() { return shotN; }, P,
 };
